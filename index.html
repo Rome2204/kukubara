@@ -3146,13 +3146,52 @@ const SoundFX = (function() {
   let roomCode = '', myPeerId = '', myReady = false, syncTimer = null;
   let peerOpen = false;
   let pendingPeerCallbacks = [];
+  let reconnectAttempts = 0;
+  let reconnectTimer = null;
+  let heartbeatTimer = null;
+  let clockSyncTimer = null;
+  let lastHostPong = 0;
   let roomState = { mapIdx: 0, started: false, players: [] };
+
+  const PEER_CONFIG = {
+    debug: 1,
+    pingInterval: 3000,
+    config: {
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:stun2.l.google.com:19302' },
+        { urls: 'stun:stun3.l.google.com:19302' },
+        { urls: 'stun:stun4.l.google.com:19302' },
+        { urls: 'stun:global.stun.twilio.com:3478' }
+      ],
+      iceCandidatePoolSize: 10
+    }
+  };
 
   function setStatus(ok, txt) {
     const el = document.getElementById('netStatus');
     if (!el) return;
     el.textContent = '● ' + txt;
     el.style.color = ok ? '#16a34a' : '#e11d48';
+  }
+
+  function safeSend(conn, payload) {
+    if (!conn || !conn.open) return false;
+    try {
+      conn.send(payload);
+      return true;
+    } catch (e) {
+      console.warn('safeSend error:', e);
+      return false;
+    }
+  }
+
+  function clearNetTimers() {
+    if (syncTimer) { clearInterval(syncTimer); syncTimer = null; }
+    if (clockSyncTimer) { clearInterval(clockSyncTimer); clockSyncTimer = null; }
+    if (heartbeatTimer) { clearInterval(heartbeatTimer); heartbeatTimer = null; }
+    if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
   }
 
   function getPlayerName() {
@@ -3181,13 +3220,21 @@ const SoundFX = (function() {
     return name;
   }
 
-  function initPeer(cb) {
+  function initPeer(cb, forceReset = false) {
     if (typeof Peer !== 'function') {
       setStatus(false, 'PeerJS unavailable');
       G.ui.toast('Không tải được thư viện Online. Hãy tải lại trang và thử lại!', 'bad', 4000);
       return;
     }
+    if (forceReset && peer) {
+      try { peer.destroy(); } catch (e) {}
+      peer = null;
+      peerOpen = false;
+    }
     if (peer && !peer.destroyed) {
+      if (peer.disconnected) {
+        try { peer.reconnect(); } catch (e) {}
+      }
       if (peerOpen) { if (cb) cb(myPeerId); }
       else if (cb) pendingPeerCallbacks.push(cb);
       return;
@@ -3195,9 +3242,10 @@ const SoundFX = (function() {
 
     setStatus(false, 'Connecting…');
     peerOpen = false;
+    reconnectAttempts = 0;
     pendingPeerCallbacks = cb ? [cb] : [];
     try {
-      peer = new Peer(null, { debug: 1 });
+      peer = new Peer(null, PEER_CONFIG);
     } catch (error) {
       setStatus(false, 'Connection Error');
       G.ui.toast('Không thể khởi tạo Online: ' + (error?.message || error), 'bad', 4000);
@@ -3209,41 +3257,81 @@ const SoundFX = (function() {
     peer.on('open', (id) => {
       myPeerId = id;
       peerOpen = true;
+      reconnectAttempts = 0;
+      if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
       setStatus(true, 'Online');
       const callbacks = pendingPeerCallbacks.splice(0);
       callbacks.forEach(fn => { try { fn(id); } catch (error) { console.error(error); } });
     });
+
     peer.on('error', (error) => {
       console.error('PeerJS error:', error);
+      const errType = error?.type || '';
+      if (errType === 'peer-unavailable') {
+        setStatus(false, 'Room Not Found');
+        G.ui.toast('Không tìm thấy phòng! Hãy kiểm tra lại Room ID hoặc chủ phòng đã thoát.', 'bad', 4000);
+        return;
+      }
+      if (errType === 'network' || errType === 'server-error' || errType === 'socket-error' || errType === 'socket-closed') {
+        setStatus(false, 'Reconnecting…');
+        if (peer && !peer.destroyed && peer.disconnected && reconnectAttempts < 5) {
+          reconnectAttempts++;
+          clearTimeout(reconnectTimer);
+          reconnectTimer = setTimeout(() => {
+            if (peer && !peer.destroyed && peer.disconnected) {
+              try { peer.reconnect(); } catch (e) {}
+            }
+          }, 1200 * reconnectAttempts);
+        }
+        return;
+      }
       setStatus(false, 'Connection Error');
-      G.ui.toast('Lỗi kết nối Online: ' + (error?.type || error?.message || 'unknown'), 'bad', 4000);
+      G.ui.toast('Lỗi kết nối Online: ' + (errType || error?.message || 'unknown'), 'bad', 3500);
     });
+
     peer.on('disconnected', () => {
       peerOpen = false;
-      setStatus(false, 'Disconnected');
+      setStatus(false, 'Reconnecting…');
+      if (peer && !peer.destroyed && reconnectAttempts < 6) {
+        reconnectAttempts++;
+        clearTimeout(reconnectTimer);
+        reconnectTimer = setTimeout(() => {
+          if (peer && !peer.destroyed && peer.disconnected) {
+            try { peer.reconnect(); } catch (e) {}
+          }
+        }, 1000 * reconnectAttempts);
+      } else {
+        setStatus(false, 'Disconnected');
+      }
     });
+
     peer.on('connection', (conn) => {
       if (!isHost) return;
       conn.on('data', (d) => {
+        if (!d || typeof d !== 'object') return;
+        if (d.type === 'PING') {
+          safeSend(conn, { type: 'PONG', ts: d.ts });
+          return;
+        }
         if (d.type === 'JOIN') {
           if (roomState.started) {
-            return conn.send({ type: 'ERR', msg: 'Trận đấu đã bắt đầu! Hãy dùng nút 👁️ để vào xem.' });
+            return safeSend(conn, { type: 'ERR', msg: 'Trận đấu đã bắt đầu! Hãy dùng nút 👁️ để vào xem.' });
           }
           if (roomState.players.length >= 4) {
-            return conn.send({ type: 'ERR', msg: 'Phòng đã đủ 4 người chơi!' });
+            return safeSend(conn, { type: 'ERR', msg: 'Phòng đã đủ 4 người chơi!' });
           }
           const incomingName = String(d.name || '').trim().replace(/\s+/g, ' ').slice(0, 14);
-          if (!incomingName) return conn.send({ type: 'ERR', msg: 'Người chơi cần đặt tên trước khi tham gia!' });
+          if (!incomingName) return safeSend(conn, { type: 'ERR', msg: 'Người chơi cần đặt tên trước khi tham gia!' });
           const duplicate = roomState.players.some(p => normalizedName(p.name) === normalizedName(incomingName));
-          if (duplicate) return conn.send({ type: 'ERR', msg: 'Tên này đã có người sử dụng trong phòng. Hãy chọn tên khác!' });
+          if (duplicate) return safeSend(conn, { type: 'ERR', msg: 'Tên này đã có người sử dụng trong phòng. Hãy chọn tên khác!' });
 
-          clientConns.push(conn);
+          if (!clientConns.includes(conn)) clientConns.push(conn);
           roomState.players.push({ id: conn.peer, name: incomingName, skin: d.skin, stats: d.stats, ready: false });
           broadcast({ type: 'UPD', state: roomState });
           updateLobby();
         } else if (d.type === 'SPEC') {
           if (!specConns.includes(conn)) specConns.push(conn);
-          conn.send({ type: 'SPEC_OK', state: roomState });
+          safeSend(conn, { type: 'SPEC_OK', state: roomState });
         } else if (d.type === 'READY') {
           const p = roomState.players.find(x => x.id === conn.peer);
           if (p) { p.ready = d.ready; broadcast({ type: 'UPD', state: roomState }); updateLobby(); }
@@ -3267,8 +3355,10 @@ const SoundFX = (function() {
         clientConns = clientConns.filter(c => c !== conn);
         specConns = specConns.filter(c => c !== conn);
         const beforeLen = roomState.players.length;
+        const leftPlayer = roomState.players.find(p => p.id === conn.peer);
         roomState.players = roomState.players.filter(p => p.id !== conn.peer);
         if (roomState.players.length !== beforeLen) {
+          if (leftPlayer) G.ui.toast(`⚠️ ${leftPlayer.name} đã rời phòng.`, 'bad', 2400);
           broadcast({ type: 'UPD', state: roomState });
           updateLobby();
         }
@@ -3277,12 +3367,27 @@ const SoundFX = (function() {
   }
 
   function broadcast(msg) {
-    clientConns.forEach(c => { if (c.open) c.send(msg); });
+    clientConns = clientConns.filter(c => c && !c.peerConnection || c.peerConnection.connectionState !== 'closed');
+    clientConns.forEach(c => safeSend(c, msg));
   }
 
   function broadcastAll(msg, excludePeerId = null) {
-    clientConns.forEach(c => { if (c.peer !== excludePeerId && c.open) c.send(msg); });
-    specConns.forEach(c => { if (c.peer !== excludePeerId && c.open) c.send(msg); });
+    clientConns.forEach(c => { if (c.peer !== excludePeerId) safeSend(c, msg); });
+    specConns.forEach(c => { if (c.peer !== excludePeerId) safeSend(c, msg); });
+  }
+
+  function startClientHeartbeat(conn) {
+    clearInterval(heartbeatTimer);
+    lastHostPong = Date.now();
+    heartbeatTimer = setInterval(() => {
+      if (!conn) return clearInterval(heartbeatTimer);
+      if (conn.open) {
+        safeSend(conn, { type: 'PING', ts: Date.now() });
+        if (Date.now() - lastHostPong > 12000) {
+          setStatus(false, 'Weak connection…');
+        }
+      }
+    }, 3000);
   }
 
   function updateLobby() {
@@ -3304,7 +3409,6 @@ const SoundFX = (function() {
     startBtn.disabled = !(roomState.players.length > 0 && roomState.players.every(p => p.ready));
   }
 
-  let clockSyncTimer = null;
   function launchOnline(spec) {
     isSpectator = !!spec;
     const localId = spec ? null : myPeerId;
@@ -3338,9 +3442,75 @@ const SoundFX = (function() {
         if (!snap) return;
         const msg = { type: 'SNAP', id: myPeerId, snap };
         if (isHost) broadcastAll(msg);
-        else if (connHost && connHost.open) connHost.send(msg);
-      }, 50);
+        else safeSend(connHost, msg);
+      }, 80);
     }
+  }
+
+  function connectToHostWithRetry(targetRoomId, rolePayload, onMessage, attempt = 1) {
+    if (!peer || peer.destroyed) {
+      G.ui.toast('Kết nối Online chưa sẵn sàng. Hãy thử lại!', 'bad');
+      return;
+    }
+    if (connHost) {
+      try { connHost.close(); } catch (e) {}
+      connHost = null;
+    }
+
+    setStatus(false, attempt > 1 ? `Retrying (${attempt}/3)…` : 'Connecting to room…');
+    const conn = peer.connect(targetRoomId, { reliable: false, serialization: 'json' });
+    connHost = conn;
+    let opened = false;
+
+    const connectTimeout = setTimeout(() => {
+      if (!opened) {
+        try { conn.close(); } catch (e) {}
+        if (attempt < 3) {
+          connectToHostWithRetry(targetRoomId, rolePayload, onMessage, attempt + 1);
+        } else {
+          setStatus(false, 'Timeout');
+          G.ui.toast('Hết thời gian kết nối tới phòng (có thể do tường lửa/4G chặn P2P). Hãy thử lại!', 'bad', 4200);
+        }
+      }
+    }, 6500);
+
+    conn.on('open', () => {
+      opened = true;
+      clearTimeout(connectTimeout);
+      setStatus(true, 'Connected');
+      safeSend(conn, rolePayload);
+      startClientHeartbeat(conn);
+    });
+
+    conn.on('data', (d) => {
+      if (!d || typeof d !== 'object') return;
+      if (d.type === 'PONG') {
+        lastHostPong = Date.now();
+        setStatus(true, 'Online');
+        return;
+      }
+      onMessage(d);
+    });
+
+    conn.on('error', (error) => {
+      clearTimeout(connectTimeout);
+      console.error('Host connection error:', error);
+      if (!opened && attempt < 3) {
+        setTimeout(() => connectToHostWithRetry(targetRoomId, rolePayload, onMessage, attempt + 1), 800);
+      } else {
+        setStatus(false, 'Connection Error');
+        G.ui.toast('Không kết nối được phòng. Hãy kiểm tra Room ID hoặc mạng Wi-Fi!', 'bad', 4000);
+      }
+    });
+
+    conn.on('close', () => {
+      clearTimeout(connectTimeout);
+      clearInterval(heartbeatTimer);
+      if (opened) {
+        setStatus(false, 'Host disconnected');
+        G.ui.toast('Mất kết nối tới chủ phòng!', 'bad', 3200);
+      }
+    });
   }
 
   G.on('action:open-online', () => {
@@ -3355,6 +3525,7 @@ const SoundFX = (function() {
   G.on('action:net-host', () => {
     const name = validatePlayerName();
     if (!name) return;
+    clearNetTimers();
     isHost = true; isSpectator = false; myReady = true;
     initPeer((id) => {
       roomCode = id;
@@ -3374,93 +3545,76 @@ const SoundFX = (function() {
     if (!id) return G.ui.toast('Hãy nhập Room ID của bạn bè!', 'bad');
     const name = validatePlayerName();
     if (!name) return;
+    clearNetTimers();
     isHost = false; isSpectator = false; roomCode = id; myReady = false;
     initPeer(() => {
-      if (!peer || peer.destroyed) {
-        G.ui.toast('Kết nối Online chưa sẵn sàng. Hãy thử lại!', 'bad');
-        return;
-      }
-      const conn = peer.connect(id);
-      connHost = conn;
-      conn.on('open', () => {
-        conn.send({ type: 'JOIN', name, skin: G.garage.getSkin(), stats: G.garage.getStats() });
-        setStatus(true, 'Joining room…');
-      });
-      conn.on('data', (d) => {
-        if (d.type === 'UPD') {
-          roomState = d.state;
-          document.getElementById('onlineJoinBox').classList.add('hidden');
-          document.getElementById('onlineLobbyBox').classList.remove('hidden');
-          updateLobby();
-        } else if (d.type === 'START') {
-          roomState = d.state;
-          launchOnline(false);
-        } else if (d.type === 'SNAP') {
-          if (G.race.isRunning()) G.race.applyRemoteSnapshot(d.id, d.snap);
-        } else if (d.type === 'ITEM_USE') {
-          if (G.race.isRunning()) G.race.applyRemoteItemEffect(d);
-        } else if (d.type === 'BOX_TAKEN') {
-          if (G.race.isRunning()) G.race.markBoxCollected(d.boxIndex);
-        } else if (d.type === 'CLOCK_SYNC') {
-          if (G.race.isRunning() && typeof d.elapsed === 'number') {
-            G.race.syncMatchStartTime(Date.now() - d.elapsed * 1000);
+      connectToHostWithRetry(
+        id,
+        { type: 'JOIN', name, skin: G.garage.getSkin(), stats: G.garage.getStats() },
+        (d) => {
+          if (d.type === 'UPD') {
+            roomState = d.state;
+            document.getElementById('onlineJoinBox').classList.add('hidden');
+            document.getElementById('onlineLobbyBox').classList.remove('hidden');
+            updateLobby();
+          } else if (d.type === 'START') {
+            roomState = d.state;
+            launchOnline(false);
+          } else if (d.type === 'SNAP') {
+            if (G.race.isRunning()) G.race.applyRemoteSnapshot(d.id, d.snap);
+          } else if (d.type === 'ITEM_USE') {
+            if (G.race.isRunning()) G.race.applyRemoteItemEffect(d);
+          } else if (d.type === 'BOX_TAKEN') {
+            if (G.race.isRunning()) G.race.markBoxCollected(d.boxIndex);
+          } else if (d.type === 'CLOCK_SYNC') {
+            if (G.race.isRunning() && typeof d.elapsed === 'number') {
+              G.race.syncMatchStartTime(Date.now() - d.elapsed * 1000);
+            }
+          } else if (d.type === 'ERR') {
+            G.ui.toast(d.msg, 'bad', 3500);
+            setStatus(false, 'Join rejected');
           }
-        } else if (d.type === 'ERR') {
-          G.ui.toast(d.msg, 'bad', 3500);
-          setStatus(false, 'Join rejected');
         }
-      });
-      conn.on('error', (error) => {
-        console.error('Join connection error:', error);
-        setStatus(false, 'Connection Error');
-        G.ui.toast('Không kết nối được phòng. Hãy kiểm tra Room ID và thử lại!', 'bad', 4000);
-      });
-      conn.on('close', () => {
-        if (!G.race.isRunning()) setStatus(false, 'Disconnected');
-      });
+      );
     });
   });
 
   G.on('action:net-spectate', () => {
     const id = document.getElementById('inputRoom').value.trim();
     if (!id) return G.ui.toast('Hãy nhập Room ID để vào xem!', 'bad');
+    clearNetTimers();
     isHost = false; isSpectator = true; roomCode = id;
     initPeer(() => {
-      const conn = peer.connect(id);
-      connHost = conn;
-      conn.on('open', () => {
-        conn.send({ type: 'SPEC' });
-        setStatus(true, 'Spectating…');
-      });
-      conn.on('data', (d) => {
-        if (d.type === 'SPEC_OK') {
-          roomState = d.state;
-          if (!roomState.players || roomState.players.length === 0) {
-            return G.ui.toast('Phòng chưa có tay đua nào!', 'bad');
-          }
-          if (roomState.started) {
+      connectToHostWithRetry(
+        id,
+        { type: 'SPEC' },
+        (d) => {
+          if (d.type === 'SPEC_OK') {
+            roomState = d.state;
+            if (!roomState.players || roomState.players.length === 0) {
+              return G.ui.toast('Phòng chưa có tay đua nào!', 'bad');
+            }
+            if (roomState.started) {
+              launchOnline(true);
+            } else {
+              G.ui.toast('👁️ Đã vào hàng ghế khán giả! Chờ chủ phòng bắt đầu…', 'ok', 3000);
+            }
+          } else if (d.type === 'UPD') {
+            roomState = d.state;
+          } else if (d.type === 'START') {
+            roomState = d.state;
             launchOnline(true);
-          } else {
-            G.ui.toast('👁️ Đã vào hàng ghế khán giả! Chờ chủ phòng bắt đầu…', 'ok', 3000);
+          } else if (d.type === 'SNAP' && G.race.isRunning()) {
+            G.race.applyRemoteSnapshot(d.id, d.snap);
+          } else if (d.type === 'ITEM_USE' && G.race.isRunning()) {
+            G.race.applyRemoteItemEffect(d);
+          } else if (d.type === 'BOX_TAKEN' && G.race.isRunning()) {
+            G.race.markBoxCollected(d.boxIndex);
+          } else if (d.type === 'CLOCK_SYNC' && G.race.isRunning() && typeof d.elapsed === 'number') {
+            G.race.syncMatchStartTime(Date.now() - d.elapsed * 1000);
           }
-        } else if (d.type === 'UPD') {
-          roomState = d.state;
-        } else if (d.type === 'START') {
-          roomState = d.state;
-          launchOnline(true);
-        } else if (d.type === 'SNAP' && G.race.isRunning()) {
-          G.race.applyRemoteSnapshot(d.id, d.snap);
-        } else if (d.type === 'ITEM_USE' && G.race.isRunning()) {
-          G.race.applyRemoteItemEffect(d);
-        } else if (d.type === 'BOX_TAKEN' && G.race.isRunning()) {
-          G.race.markBoxCollected(d.boxIndex);
-        } else if (d.type === 'CLOCK_SYNC' && G.race.isRunning() && typeof d.elapsed === 'number') {
-          G.race.syncMatchStartTime(Date.now() - d.elapsed * 1000);
         }
-      });
-      conn.on('error', () => {
-        G.ui.toast('Không kết nối được phòng để xem!', 'bad');
-      });
+      );
     });
   });
 
@@ -3471,7 +3625,9 @@ const SoundFX = (function() {
       if (p) p.ready = myReady;
       broadcast({ type: 'UPD', state: roomState });
       updateLobby();
-    } else if (connHost && connHost.open) connHost.send({ type: 'READY', ready: myReady });
+    } else {
+      safeSend(connHost, { type: 'READY', ready: myReady });
+    }
   });
 
   G.on('action:net-start', () => {
@@ -3486,13 +3642,28 @@ const SoundFX = (function() {
   G.on('net:item-use', (payload) => {
     const msg = { type: 'ITEM_USE', itemId: payload.itemId, sourceId: payload.sourceId, sourceName: payload.sourceName };
     if (isHost) broadcastAll(msg);
-    else if (connHost && connHost.open) connHost.send(msg);
+    else safeSend(connHost, msg);
   });
 
   G.on('net:box-taken', (payload) => {
     const msg = { type: 'BOX_TAKEN', boxIndex: payload.boxIndex };
     if (isHost) broadcastAll(msg);
-    else if (connHost && connHost.open) connHost.send(msg);
+    else safeSend(connHost, msg);
+  });
+
+  G.on('action:back-menu', () => {
+    clearNetTimers();
+    if (connHost) {
+      try { connHost.close(); } catch (e) {}
+      connHost = null;
+    }
+    if (isHost) {
+      clientConns.forEach(c => { try { c.close(); } catch (e) {} });
+      specConns.forEach(c => { try { c.close(); } catch (e) {} });
+      clientConns = [];
+      specConns = [];
+      isHost = false;
+    }
   });
 
   G.on('action:net-copy', () => {
