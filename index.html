@@ -1088,6 +1088,8 @@ const SoundFX = (function() {
   let currentMapIdx = 0;
   let localCar = null;
   let isSpectatorMode = false;
+  let isOnlineMatch = false;
+  let matchStartTime = 0;
   let specFollowLeader = true;
   let specTargetIdx = 0;
   let finishOrder = [];
@@ -1137,24 +1139,29 @@ const SoundFX = (function() {
     }
   }
 
-  function applyItemEffect(userCar, item) {
+  function applyItemEffect(userCar, item, isRemote = false) {
     if (!item) return;
+    if (!isRemote && isOnlineMatch && userCar.kind === 'local') {
+      G.emit('net:item-use', { itemId: item.id, sourceId: userCar.id, sourceName: userCar.name });
+    }
     if (item.id === 'shield') {
       if (userCar.kind === 'local') SoundFX.shield();
       userCar.shieldTimer = 6.0;
       if (userCar.shieldMesh) userCar.shieldMesh.visible = true;
       if (userCar.kind === 'local') G.ui.toast('🛡️ ĐÃ BẬT KHIÊN BẢO VỆ (6s)!', 'ok', 2200);
     } else if (item.id === 'bomb') {
-      if (userCar.kind === 'local') SoundFX.explosion();
+      if (userCar.kind === 'local' || isRemote) SoundFX.explosion();
       let hitCount = 0;
       cars.forEach(c => {
         if (c.id !== userCar.id && c.shieldTimer <= 0) {
           c.stunTimer = 2.5;
           hitCount++;
+        } else if (c.id !== userCar.id && c.shieldTimer > 0 && c.kind === 'local') {
+          G.ui.toast('🛡️ Khiên của bạn đã chặn được BOM!', 'ok', 1800);
         }
       });
       if (userCar.kind === 'local') G.ui.toast(`💣 BOM NỔ! Làm choáng ${hitCount} đối thủ!`, 'ok', 2200);
-      else G.ui.toast(`💣 ${userCar.name} vừa kích hoạt BOM!`, 'bad', 1800);
+      else G.ui.toast(`💣 ${userCar.name} vừa kích hoạt BOM!`, 'bad', 2000);
     } else if (item.id === 'mushroom') {
       if (userCar.kind === 'local') SoundFX.boost();
       userCar.nitro = userCar.nitroMax;
@@ -1162,14 +1169,16 @@ const SoundFX = (function() {
       userCar.aiBoostTimer = 2.5;
       if (userCar.kind === 'local') G.ui.toast('🍄 NẤM SIÊU TỐC BÙNG NỔ!', 'ok', 2200);
     } else if (item.id === 'lightning') {
-      if (userCar.kind === 'local') SoundFX.explosion();
+      if (userCar.kind === 'local' || isRemote) SoundFX.explosion();
       cars.forEach(c => {
         if (c.id !== userCar.id && c.shieldTimer <= 0) {
           c.stunTimer = 3.0;
+        } else if (c.id !== userCar.id && c.shieldTimer > 0 && c.kind === 'local') {
+          G.ui.toast('🛡️ Khiên của bạn đã chặn được TIA CHỚP!', 'ok', 1800);
         }
       });
       if (userCar.kind === 'local') G.ui.toast('⚡ TIA CHỚP! Đối thủ bị chậm lại!', 'ok', 2200);
-      else G.ui.toast(`⚡ ${userCar.name} phóng TIA CHỚP!`, 'bad', 1800);
+      else G.ui.toast(`⚡ ${userCar.name} phóng TIA CHỚP!`, 'bad', 2000);
     }
   }
 
@@ -2464,6 +2473,8 @@ const SoundFX = (function() {
     paused = true;
     localCar = null;
     isSpectatorMode = !!opts.spectator;
+    isOnlineMatch = !!opts.online;
+    matchStartTime = opts.startTime || 0;
     specFollowLeader = true;
     specTargetIdx = 0;
 
@@ -2530,6 +2541,33 @@ const SoundFX = (function() {
       paused = false;
       overlay.classList.add('hidden');
       SoundFX.startBGM();
+    } else if (isOnlineMatch && matchStartTime > 0) {
+      overlay.classList.remove('hidden');
+      let lastShown = null;
+      const syncCdTimer = setInterval(() => {
+        if (!running) { clearInterval(syncCdTimer); overlay.classList.add('hidden'); return; }
+        const remainMs = matchStartTime - Date.now();
+        if (remainMs > 0) {
+          const sec = Math.min(3, Math.ceil(remainMs / 750));
+          if (sec !== lastShown) {
+            lastShown = sec;
+            cText.textContent = String(sec);
+            SoundFX.countdown(false);
+          }
+        } else if (remainMs > -750) {
+          if (lastShown !== 0) {
+            lastShown = 0;
+            cText.textContent = 'GO!!';
+            SoundFX.countdown(true);
+            paused = false;
+            SoundFX.startEngine();
+            SoundFX.startBGM();
+          }
+        } else {
+          clearInterval(syncCdTimer);
+          overlay.classList.add('hidden');
+        }
+      }, 40);
     } else {
       overlay.classList.remove('hidden');
       let count = 3;
@@ -2578,8 +2616,12 @@ const SoundFX = (function() {
         updateObstacles(dt, now);
       }
 
-      if (!paused) {
+      if (isOnlineMatch && matchStartTime > 0 && Date.now() >= matchStartTime) {
         updateMatchTimers(dt);
+      } else if (!paused) {
+        updateMatchTimers(dt);
+      }
+      if (!paused) {
         updateCars(dt, now);
         resolveCarCollisions(dt);
       }
@@ -2595,7 +2637,12 @@ const SoundFX = (function() {
   }
 
   function updateMatchTimers(dt) {
-    matchTimeLeft = Math.max(0, matchTimeLeft - dt);
+    if (isOnlineMatch && matchStartTime > 0) {
+      const elapsed = Math.max(0, (Date.now() - matchStartTime) / 1000);
+      matchTimeLeft = Math.max(0, MATCH_DURATION - elapsed);
+    } else {
+      matchTimeLeft = Math.max(0, matchTimeLeft - dt);
+    }
     const mins = Math.floor(matchTimeLeft / 60);
     const secs = Math.floor(matchTimeLeft % 60);
     document.getElementById('hudTimer').textContent =
@@ -2609,7 +2656,7 @@ const SoundFX = (function() {
       return;
     }
 
-    if (quizzesAsked < MAX_QUIZZES && localCar && !localCar.finished) {
+    if (!paused && quizzesAsked < MAX_QUIZZES && localCar && !localCar.finished) {
       quizTimer += dt;
       if (quizTimer >= QUIZ_INTERVAL) {
         quizTimer = 0;
@@ -2695,6 +2742,9 @@ const SoundFX = (function() {
       if (!box.collected && box.targetLap === car.lap && car.mesh.position.distanceTo(box.mesh.position) < 3.8) {
         box.collected = true;
         box.mesh.visible = false;
+        if (isOnlineMatch && car.kind === 'local') {
+          G.emit('net:box-taken', { boxIndex: i });
+        }
 
         const randomItem = POWERUP_ITEMS[Math.floor(Math.random() * POWERUP_ITEMS.length)];
         if (car.kind === 'local') {
@@ -2821,6 +2871,14 @@ const SoundFX = (function() {
         checkObstacleHit(car);
         updateLap(car, nextT);
         checkItemBoxPickup(car);
+      } else if (car.kind === 'remote') {
+        if (car.shieldMesh) {
+          car.shieldMesh.visible = car.shieldTimer > 0;
+          if (car.shieldTimer > 0) car.shieldMesh.rotation.y += dt * 3;
+        }
+        if (car.stunTimer > 0) {
+          car.mesh.rotation.y += dt * 10;
+        }
       }
     });
   }
@@ -3012,17 +3070,51 @@ const SoundFX = (function() {
     isRunning() { return running; },
     getLocalSnapshot() {
       if (!localCar) return null;
-      return { x: localCar.mesh.position.x, y: localCar.mesh.position.y, z: localCar.mesh.position.z, h: localCar.heading, s: localCar.speed, lap: localCar.lap, prog: localCar.progress };
+      return {
+        x: localCar.mesh.position.x,
+        y: localCar.mesh.position.y,
+        z: localCar.mesh.position.z,
+        h: localCar.heading,
+        s: localCar.speed,
+        lap: localCar.lap,
+        prog: localCar.progress,
+        shield: localCar.shieldTimer,
+        stun: localCar.stunTimer
+      };
     },
     applyRemoteSnapshot(id, snap) {
       const c = cars.find(x => x.id === id);
       if (!c || !snap) return;
       c.mesh.position.set(snap.x, snap.y || 0, snap.z);
       c.heading = snap.h;
-      c.mesh.rotation.y = snap.h;
+      if (typeof snap.stun === 'number') c.stunTimer = snap.stun;
+      if (typeof snap.shield === 'number') c.shieldTimer = snap.shield;
+      if (c.stunTimer <= 0) {
+        c.mesh.rotation.y = snap.h;
+      }
       if (typeof snap.s === 'number') c.speed = snap.s;
       c.lap = snap.lap;
       c.progress = snap.prog;
+    },
+    applyRemoteItemEffect(data) {
+      if (!data) return;
+      const sourceCar = cars.find(x => x.id === data.sourceId) || { id: data.sourceId, name: data.sourceName || 'Đối thủ', kind: 'remote' };
+      const itemObj = POWERUP_ITEMS.find(x => x.id === data.itemId);
+      if (itemObj) {
+        applyItemEffect(sourceCar, itemObj, true);
+      }
+    },
+    markBoxCollected(boxIndex) {
+      const box = itemBoxes[boxIndex];
+      if (box && !box.collected) {
+        box.collected = true;
+        box.mesh.visible = false;
+      }
+    },
+    syncMatchStartTime(serverStartTime) {
+      if (typeof serverStartTime === 'number' && serverStartTime > 0) {
+        matchStartTime = serverStartTime;
+      }
     }
   };
 
@@ -3158,6 +3250,12 @@ const SoundFX = (function() {
         } else if (d.type === 'SNAP') {
           if (G.race.isRunning()) G.race.applyRemoteSnapshot(d.id, d.snap);
           broadcastAll(d, conn.peer);
+        } else if (d.type === 'ITEM_USE') {
+          if (G.race.isRunning()) G.race.applyRemoteItemEffect(d);
+          broadcastAll(d, conn.peer);
+        } else if (d.type === 'BOX_TAKEN') {
+          if (G.race.isRunning()) G.race.markBoxCollected(d.boxIndex);
+          broadcastAll(d, conn.peer);
         } else if (d.type === 'RACE_END') {
           broadcastAll(d, conn.peer);
         }
@@ -3206,12 +3304,15 @@ const SoundFX = (function() {
     startBtn.disabled = !(roomState.players.length > 0 && roomState.players.every(p => p.ready));
   }
 
+  let clockSyncTimer = null;
   function launchOnline(spec) {
     isSpectator = !!spec;
     const localId = spec ? null : myPeerId;
     G.race.start({
       map: roomState.mapIdx,
       localId,
+      online: true,
+      startTime: roomState.startTime || (Date.now() + 2250),
       spectator: isSpectator,
       players: roomState.players.map(p => ({
         id: p.id,
@@ -3221,6 +3322,14 @@ const SoundFX = (function() {
         stats: p.stats
       }))
     });
+    if (isHost) {
+      clearInterval(clockSyncTimer);
+      clockSyncTimer = setInterval(() => {
+        if (!G.race.isRunning()) return clearInterval(clockSyncTimer);
+        const elapsed = Math.max(0, (Date.now() - (roomState.startTime || Date.now())) / 1000);
+        broadcastAll({ type: 'CLOCK_SYNC', elapsed });
+      }, 1000);
+    }
     if (!spec) {
       clearInterval(syncTimer);
       syncTimer = setInterval(() => {
@@ -3288,6 +3397,14 @@ const SoundFX = (function() {
           launchOnline(false);
         } else if (d.type === 'SNAP') {
           if (G.race.isRunning()) G.race.applyRemoteSnapshot(d.id, d.snap);
+        } else if (d.type === 'ITEM_USE') {
+          if (G.race.isRunning()) G.race.applyRemoteItemEffect(d);
+        } else if (d.type === 'BOX_TAKEN') {
+          if (G.race.isRunning()) G.race.markBoxCollected(d.boxIndex);
+        } else if (d.type === 'CLOCK_SYNC') {
+          if (G.race.isRunning() && typeof d.elapsed === 'number') {
+            G.race.syncMatchStartTime(Date.now() - d.elapsed * 1000);
+          }
         } else if (d.type === 'ERR') {
           G.ui.toast(d.msg, 'bad', 3500);
           setStatus(false, 'Join rejected');
@@ -3333,6 +3450,12 @@ const SoundFX = (function() {
           launchOnline(true);
         } else if (d.type === 'SNAP' && G.race.isRunning()) {
           G.race.applyRemoteSnapshot(d.id, d.snap);
+        } else if (d.type === 'ITEM_USE' && G.race.isRunning()) {
+          G.race.applyRemoteItemEffect(d);
+        } else if (d.type === 'BOX_TAKEN' && G.race.isRunning()) {
+          G.race.markBoxCollected(d.boxIndex);
+        } else if (d.type === 'CLOCK_SYNC' && G.race.isRunning() && typeof d.elapsed === 'number') {
+          G.race.syncMatchStartTime(Date.now() - d.elapsed * 1000);
         }
       });
       conn.on('error', () => {
@@ -3354,9 +3477,22 @@ const SoundFX = (function() {
   G.on('action:net-start', () => {
     if (isHost) {
       roomState.started = true;
+      roomState.startTime = Date.now() + 2300;
       broadcastAll({ type: 'START', state: roomState });
       launchOnline(false);
     }
+  });
+
+  G.on('net:item-use', (payload) => {
+    const msg = { type: 'ITEM_USE', itemId: payload.itemId, sourceId: payload.sourceId, sourceName: payload.sourceName };
+    if (isHost) broadcastAll(msg);
+    else if (connHost && connHost.open) connHost.send(msg);
+  });
+
+  G.on('net:box-taken', (payload) => {
+    const msg = { type: 'BOX_TAKEN', boxIndex: payload.boxIndex };
+    if (isHost) broadcastAll(msg);
+    else if (connHost && connHost.open) connHost.send(msg);
   });
 
   G.on('action:net-copy', () => {
