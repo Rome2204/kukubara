@@ -3,514 +3,1045 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>SUPER INVENTION KART 3D — Mario Kart Style!</title>
-  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
+  <title>SUPER INVENTION KART 3D — Neon Racing!</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;600;700;800;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+/* ==========================================================================
+   SUPER INVENTION KART 3D — NEON RACING EDITION
+   ========================================================================== */
+:root {
+  --neon-cyan: #00f0ff;
+  --neon-purple: #a855f7;
+  --neon-magenta: #f43f9e;
+  --neon-blue: #3b82f6;
+  --neon-orange: #ff6b2b;
+  --neon-green: #22d65e;
+  --neon-yellow: #facc15;
+  --dark-bg: #070b16;
+  --dark-panel: rgba(13, 19, 36, 0.84);
+  --dark-card: rgba(20, 28, 52, 0.85);
+  --dark-border: rgba(0, 240, 255, 0.25);
+  --text-primary: #eef4ff;
+  --text-muted: #94a3b8;
+  --glow-cyan: 0 0 14px rgba(0, 240, 255, 0.55), 0 0 32px rgba(0, 240, 255, 0.2);
+  --glow-purple: 0 0 14px rgba(168, 85, 247, 0.55), 0 0 32px rgba(168, 85, 247, 0.2);
+  --glow-magenta: 0 0 14px rgba(244, 63, 158, 0.55), 0 0 32px rgba(244, 63, 158, 0.2);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
+body {
+  font-family: 'Orbitron', 'Rajdhani', 'Segoe UI', sans-serif;
+  background: var(--dark-bg);
+  color: var(--text-primary);
+  overflow: hidden;
+  width: 100vw;
+  height: 100vh;
+}
+#gameCanvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  z-index: 1;
+}
+
+/* Force Landscape Overlay */
+#landscapeWarning {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: var(--dark-bg);
+  color: #ffffff;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 24px;
+}
+#landscapeWarning .phone-icon {
+  font-size: 4rem;
+  animation: rotatePhone 1.5s infinite ease-in-out;
+  margin-bottom: 16px;
+  filter: drop-shadow(0 0 12px var(--neon-cyan));
+}
+@keyframes rotatePhone {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(-90deg); }
+}
+@media (orientation: portrait) {
+  #landscapeWarning { display: flex !important; }
+}
+
+/* ============ SCREENS ============ */
+.screen {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: radial-gradient(ellipse at center, rgba(7, 11, 22, 0.45), rgba(5, 8, 18, 0.78));
+  backdrop-filter: blur(4px);
+}
+.screen.hidden { display: none !important; }
+
+/* Main Menu is a transparent HUD over the live 3D Neon Showcase */
+#screen-menu {
+  background: radial-gradient(circle at 50% 55%, transparent 35%, rgba(5, 8, 18, 0.55) 100%);
+  backdrop-filter: none;
+  justify-content: space-between;
+  align-items: stretch;
+  padding: 18px 24px;
+  pointer-events: none;
+}
+
+/* ============ NEON PANELS (Online, Results, Modals) ============ */
+.arcade-panel {
+  background: linear-gradient(145deg, rgba(13, 19, 36, 0.94), rgba(8, 12, 24, 0.97));
+  border: 1px solid rgba(0, 240, 255, 0.35);
+  border-radius: 20px;
+  padding: 20px 24px;
+  width: 100%;
+  max-width: 580px;
+  box-shadow: var(--glow-cyan), 0 24px 50px rgba(0, 0, 0, 0.65);
+  position: relative;
+  animation: neonFadeIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  max-height: 92vh;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--neon-cyan) transparent;
+}
+@keyframes neonFadeIn {
+  from { transform: scale(0.93); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+/* ============ MAIN MENU HUD LAYOUT ============ */
+.menu-top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  pointer-events: auto;
+}
+
+.player-profile-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(14, 22, 44, 0.72);
+  border: 1px solid rgba(0, 240, 255, 0.45);
+  border-radius: 14px;
+  padding: 8px 14px 8px 8px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 0 18px rgba(0, 240, 255, 0.18), inset 0 0 12px rgba(0, 240, 255, 0.08);
+}
+.player-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  border: 2px solid var(--neon-cyan);
+  box-shadow: 0 0 12px rgba(0, 240, 255, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #0f1c3a, #1e1438);
+  font-size: 1.55rem;
+}
+.player-info { display: flex; flex-direction: column; gap: 3px; }
+.player-name-input {
+  font-family: 'Orbitron', 'Rajdhani', sans-serif;
+  background: transparent !important;
+  border: none !important;
+  border-bottom: 1px solid rgba(0, 240, 255, 0.25) !important;
+  border-radius: 0 !important;
+  padding: 2px 4px !important;
+  font-size: 0.92rem !important;
+  font-weight: 700;
+  color: #ffffff !important;
+  width: 150px;
+  box-shadow: none !important;
+}
+.player-name-input:focus {
+  border-bottom-color: var(--neon-cyan) !important;
+  text-shadow: 0 0 8px rgba(0, 240, 255, 0.5);
+}
+
+.menu-title-center {
+  text-align: center;
+  pointer-events: none;
+  flex: 1;
+}
+.logo-top {
+  display: inline-block;
+  background: rgba(13, 20, 42, 0.75);
+  color: var(--neon-cyan);
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 4px 14px;
+  border-radius: 99px;
+  border: 1px solid rgba(0, 240, 255, 0.45);
+  box-shadow: 0 0 12px rgba(0, 240, 255, 0.25);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.logo-main {
+  font-size: 1.75rem;
+  font-weight: 800;
+  line-height: 1.08;
+  background: linear-gradient(180deg, #ffffff 10%, var(--neon-cyan) 65%, var(--neon-purple) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 0 14px rgba(0, 240, 255, 0.5));
+  letter-spacing: 2px;
+}
+
+.menu-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-setup {
+  font-family: 'Orbitron', 'Rajdhani', sans-serif;
+  background: linear-gradient(135deg, rgba(16, 28, 56, 0.85), rgba(32, 18, 58, 0.85));
+  border: 1.5px solid var(--neon-cyan);
+  color: #ffffff;
+  padding: 10px 18px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 1.5px;
+  box-shadow: 0 0 15px rgba(0, 240, 255, 0.35), inset 0 0 10px rgba(168, 85, 247, 0.25);
+  backdrop-filter: blur(8px);
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn-setup:hover {
+  box-shadow: var(--glow-cyan), var(--glow-purple);
+  transform: translateY(-1px);
+}
+
+/* Center area: lets 3D Car shine + holographic gauges */
+.menu-center-stage {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  padding-bottom: 10px;
+  pointer-events: none;
+}
+
+.car-badge-pill {
+  background: rgba(10, 16, 34, 0.72);
+  border: 1px solid rgba(0, 240, 255, 0.4);
+  border-radius: 99px;
+  padding: 4px 16px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--neon-cyan);
+  letter-spacing: 1.5px;
+  margin-bottom: 10px;
+  box-shadow: 0 0 12px rgba(0, 240, 255, 0.25);
+  backdrop-filter: blur(6px);
+}
+
+/* ============ HOLOGRAPHIC STAT GAUGES ============ */
+.stat-gauges {
+  display: flex;
+  justify-content: center;
+  gap: 22px;
+  padding: 8px 18px;
+  background: rgba(8, 14, 30, 0.45);
+  border: 1px solid rgba(0, 240, 255, 0.2);
+  border-radius: 16px;
+  backdrop-filter: blur(6px);
+}
+.stat-gauge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.gauge-circle {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle, rgba(0, 240, 255, 0.1), rgba(10, 14, 26, 0.75));
+  box-shadow: inset 0 0 10px rgba(0, 240, 255, 0.15);
+}
+.gauge-circle svg {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  transform: rotate(135deg);
+}
+.gauge-circle svg circle {
+  fill: none;
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+.gauge-circle svg .gauge-track {
+  stroke: rgba(255, 255, 255, 0.12);
+  stroke-dasharray: 118 157;
+}
+.gauge-circle svg .gauge-fill {
+  stroke: var(--neon-cyan);
+  stroke-dasharray: 157;
+  stroke-dashoffset: 157;
+  transition: stroke-dashoffset 0.5s ease;
+  filter: drop-shadow(0 0 5px currentColor);
+}
+.gauge-value {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: #ffffff;
+  z-index: 1;
+  text-shadow: 0 0 8px var(--neon-cyan);
+}
+.gauge-label {
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: var(--neon-cyan);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  text-shadow: 0 0 6px rgba(0, 240, 255, 0.5);
+}
+
+/* ============ MENU BOTTOM DOCK ============ */
+.menu-bottom-dock {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+  pointer-events: auto;
+}
+
+.track-dock {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(12, 18, 38, 0.72);
+  border: 1px solid rgba(0, 240, 255, 0.3);
+  border-radius: 16px;
+  padding: 10px 12px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 0 20px rgba(0, 240, 255, 0.12);
+}
+.track-nav-btn {
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 1.3rem;
+  cursor: pointer;
+  padding: 4px 6px;
+  opacity: 0.75;
+  transition: opacity 0.2s, transform 0.15s;
+}
+.track-nav-btn:hover { opacity: 1; color: var(--neon-cyan); transform: scale(1.15); }
+
+.track-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.track-card {
+  width: 108px;
+  background: linear-gradient(160deg, rgba(22, 32, 60, 0.9), rgba(12, 16, 34, 0.95));
+  border: 1.5px solid rgba(148, 163, 184, 0.25);
+  border-radius: 12px;
+  padding: 10px 8px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+.track-card:hover {
+  border-color: rgba(0, 240, 255, 0.55);
+  transform: translateY(-2px);
+}
+.track-card.active {
+  border-color: var(--neon-magenta);
+  box-shadow: 0 0 16px rgba(244, 63, 158, 0.5), inset 0 0 14px rgba(168, 85, 247, 0.2);
+  background: linear-gradient(160deg, rgba(46, 20, 68, 0.92), rgba(14, 24, 52, 0.95));
+  transform: translateY(-3px);
+}
+.track-card .icon {
+  font-size: 1.75rem;
+  display: block;
+  margin-bottom: 5px;
+  filter: drop-shadow(0 0 8px rgba(0, 240, 255, 0.45));
+}
+.track-card .tname {
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--text-muted);
+}
+.track-card.active .tname { color: #ffffff; text-shadow: 0 0 6px var(--neon-magenta); }
+
+.menu-action-dock {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+.menu-mode-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  width: 240px;
+}
+.menu-primary-row {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+}
+
+/* ============ LAYOUT & INPUTS ============ */
+.row { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
+.col { display: flex; flex-direction: column; gap: 10px; }
+
+input[type="text"], select {
+  font-family: 'Orbitron', 'Rajdhani', sans-serif;
+  background: rgba(20, 28, 52, 0.9);
+  border: 1px solid rgba(0, 240, 255, 0.35);
+  color: var(--text-primary);
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  outline: none;
+  flex: 1;
+  transition: border-color 0.25s, box-shadow 0.25s;
+}
+input[type="text"]:focus, select:focus {
+  border-color: var(--neon-cyan);
+  box-shadow: 0 0 12px rgba(0, 240, 255, 0.35);
+}
+input[type="text"]::placeholder { color: var(--text-muted); }
+
+/* ============ NEON BUTTONS ============ */
+.btn-arcade {
+  font-family: 'Orbitron', 'Rajdhani', sans-serif;
+  background: rgba(18, 26, 48, 0.88);
+  color: var(--text-primary);
+  border: 1.5px solid rgba(0, 240, 255, 0.38);
+  padding: 10px 16px;
+  border-radius: 12px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  backdrop-filter: blur(8px);
+}
+.btn-arcade:hover:not(:disabled) {
+  border-color: var(--neon-cyan);
+  box-shadow: var(--glow-cyan);
+  transform: translateY(-1px);
+}
+.btn-arcade:active:not(:disabled) { transform: translateY(1px); }
+.btn-arcade:disabled { opacity: 0.38; cursor: not-allowed; }
+
+.btn-mode {
+  background: linear-gradient(90deg, rgba(24, 34, 68, 0.88), rgba(44, 24, 72, 0.88));
+  border-color: rgba(168, 85, 247, 0.55);
+  color: #ffffff;
+  justify-content: space-between;
+  padding: 9px 14px;
+  font-size: 0.78rem;
+  text-transform: none;
+  box-shadow: 0 0 12px rgba(168, 85, 247, 0.2);
+}
+.btn-mode:hover:not(:disabled) {
+  border-color: var(--neon-cyan);
+  box-shadow: var(--glow-purple);
+}
+
+.btn-go {
+  background: linear-gradient(135deg, rgba(34, 214, 94, 0.25), rgba(16, 185, 129, 0.15));
+  border-color: var(--neon-green);
+  color: #6ee7b7;
+  text-shadow: 0 0 8px rgba(34, 214, 94, 0.5);
+}
+.btn-go:hover:not(:disabled) {
+  box-shadow: 0 0 18px rgba(34, 214, 94, 0.45);
+}
+
+.btn-gold {
+  background: linear-gradient(135deg, rgba(250, 204, 21, 0.22), rgba(245, 158, 11, 0.12));
+  border-color: var(--neon-yellow);
+  color: #fde047;
+}
+.btn-gold:hover:not(:disabled) { box-shadow: 0 0 18px rgba(250, 204, 21, 0.45); }
+
+.btn-blue {
+  background: linear-gradient(135deg, rgba(0, 240, 255, 0.22), rgba(59, 130, 246, 0.15));
+  border-color: var(--neon-cyan);
+  color: #a5f3fc;
+}
+.btn-blue:hover:not(:disabled) { box-shadow: var(--glow-cyan); }
+
+.btn-red {
+  background: linear-gradient(135deg, rgba(244, 63, 158, 0.24), rgba(225, 29, 72, 0.15));
+  border-color: var(--neon-magenta);
+  color: #fbcfe8;
+}
+.btn-red:hover:not(:disabled) { box-shadow: var(--glow-magenta); }
+
+.btn-gara {
+  background: linear-gradient(135deg, rgba(0, 180, 255, 0.24), rgba(14, 116, 144, 0.35));
+  border: 2px solid var(--neon-cyan);
+  color: #ffffff;
+  font-size: 1.05rem;
+  padding: 12px 22px;
+  box-shadow: var(--glow-cyan);
+}
+
+/* RACE button — Prominent fiery orange-magenta neon */
+.btn-race {
+  background: linear-gradient(135deg, #ff6b2b, #e11d48);
+  border: 2px solid #fb923c;
+  color: #fff;
+  font-size: 1.25rem;
+  font-weight: 800;
+  padding: 12px 34px;
+  border-radius: 12px;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 0 22px rgba(255, 107, 43, 0.55), 0 0 45px rgba(244, 63, 158, 0.25);
+  letter-spacing: 3px;
+  animation: racePulse 2s infinite;
+}
+.btn-race:hover:not(:disabled) {
+  border-color: #fde047;
+  box-shadow: 0 0 32px rgba(255, 107, 43, 0.8), 0 0 60px rgba(244, 63, 158, 0.4);
+  transform: translateY(-2px) scale(1.03);
+}
+@keyframes racePulse {
+  0%, 100% { box-shadow: 0 0 20px rgba(255, 107, 43, 0.5), 0 0 40px rgba(244, 63, 158, 0.2); }
+  50% { box-shadow: 0 0 30px rgba(255, 107, 43, 0.75), 0 0 60px rgba(244, 63, 158, 0.38); }
+}
+
+/* ============ COIN PILL ============ */
+.coin-pill {
+  background: rgba(250, 204, 21, 0.12);
+  border: 1px solid rgba(250, 204, 21, 0.45);
+  box-shadow: 0 0 10px rgba(250, 204, 21, 0.18);
+  padding: 4px 12px;
+  border-radius: 99px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--neon-yellow);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ============ GARAGE SCREEN (Side panel so 3D car stays visible!) ============ */
+#screen-garage {
+  background: linear-gradient(90deg, rgba(6, 10, 22, 0.85) 0%, rgba(6, 10, 22, 0.45) 55%, rgba(6, 10, 22, 0.15) 100%);
+  backdrop-filter: blur(2px);
+  align-items: flex-start;
+  justify-content: center;
+  padding: 20px 28px;
+}
+.garage-panel {
+  max-width: 470px;
+}
+
+.stat-row { margin-bottom: 10px; }
+.stat-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 700;
+  margin-bottom: 4px;
+  font-size: 0.78rem;
+  color: var(--text-primary);
+}
+.meter {
+  height: 10px;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(0, 240, 255, 0.25);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.meter-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--neon-cyan), var(--neon-purple));
+  transition: width 0.3s ease;
+  border-radius: 99px;
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.5);
+}
+
+/* Color swatches */
+.swatches { display: flex; gap: 9px; flex-wrap: wrap; }
+.swatch {
+  width: 30px; height: 30px; border-radius: 50%; cursor: pointer;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.2s;
+}
+.swatch:hover { transform: scale(1.12); border-color: #fff; }
+.swatch.active {
+  border-color: var(--neon-cyan);
+  box-shadow: 0 0 12px var(--neon-cyan);
+  transform: scale(1.18);
+}
+
+/* ============ CAR SELECTOR IN GARAGE ============ */
+.car-selector {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 8px;
+  margin: 8px 0;
+  max-height: 185px;
+  overflow-y: auto;
+  padding-right: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--neon-cyan) transparent;
+}
+.car-select-card {
+  padding: 9px 7px;
+  background: var(--dark-card);
+  border: 1.5px solid rgba(0, 240, 255, 0.2);
+  border-radius: 12px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+.car-select-card:hover { border-color: rgba(0, 240, 255, 0.55); }
+.car-select-card.active {
+  border-color: var(--neon-cyan);
+  box-shadow: var(--glow-cyan);
+  background: rgba(0, 240, 255, 0.1);
+}
+.car-select-card .car-mini-icon {
+  font-size: 1.5rem;
+  margin-bottom: 3px;
+}
+.car-select-card .car-mini-name {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: 0.5px;
+}
+.car-select-card .car-mini-price {
+  font-size: 0.6rem;
+  color: var(--neon-yellow);
+  margin-top: 2px;
+}
+.car-select-card.active .car-mini-name { color: var(--neon-cyan); }
+.car-select-card.locked { opacity: 0.72; }
+.car-select-card.locked::after {
+  content: '🔒';
+  position: absolute;
+  top: 4px;
+  right: 5px;
+  font-size: 0.68rem;
+}
+.car-desc-box {
+  font-size: 0.75rem;
+  color: var(--neon-cyan);
+  background: rgba(0, 240, 255, 0.06);
+  border: 1px solid rgba(0, 240, 255, 0.2);
+  border-radius: 10px;
+  padding: 7px 10px;
+  margin-bottom: 10px;
+  line-height: 1.35;
+}
+
+/* ============ SETUP MODAL ============ */
+#setupModal {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  background: rgba(5, 8, 18, 0.8);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+#setupModal.hidden { display: none !important; }
+.setup-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  background: var(--dark-card);
+  border: 1px solid rgba(0, 240, 255, 0.2);
+  border-radius: 12px;
+  margin-bottom: 8px;
+  font-size: 0.84rem;
+}
+
+/* ============ RACING HUD ============ */
+#hud {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 14px 18px;
+}
+#hud.hidden { display: none !important; }
+.hud-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+
+.hud-pos-badge {
+  background: linear-gradient(135deg, rgba(250, 204, 21, 0.22), rgba(255, 107, 43, 0.22));
+  border: 1.5px solid rgba(250, 204, 21, 0.65);
+  box-shadow: 0 0 18px rgba(250, 204, 21, 0.35);
+  border-radius: 14px;
+  padding: 6px 16px;
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+.hud-pos-num {
+  font-size: 1.85rem;
+  font-weight: 800;
+  color: var(--neon-yellow);
+  text-shadow: 0 0 10px rgba(250, 204, 21, 0.7);
+}
+.hud-pos-sub { font-size: 0.9rem; font-weight: 700; color: var(--neon-orange); }
+
+.hud-pill {
+  background: rgba(12, 18, 36, 0.85);
+  border: 1px solid rgba(0, 240, 255, 0.3);
+  border-radius: 12px;
+  padding: 6px 14px;
+  text-align: center;
+  pointer-events: auto;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 0 12px rgba(0, 240, 255, 0.12);
+}
+.hud-val { font-size: 1.12rem; font-weight: 700; color: var(--neon-cyan); }
+.hud-lbl { font-size: 0.62rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+
+.turbo-bar-outer {
+  width: 140px; height: 10px;
+  background: rgba(10, 14, 26, 0.9);
+  border: 1px solid rgba(0, 240, 255, 0.25);
+  border-radius: 99px;
+  padding: 1px;
+  margin-top: 3px;
+}
+#nitroBar {
+  height: 100%; width: 0%;
+  background: linear-gradient(90deg, var(--neon-cyan), var(--neon-purple), var(--neon-magenta));
+  border-radius: 99px;
+  transition: width 0.08s;
+  box-shadow: 0 0 8px rgba(0, 240, 255, 0.5);
+}
+
+/* ============ CENTER ITEM BANNER ============ */
+#itemBanner {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 22;
+  pointer-events: none;
+  text-align: center;
+  background: linear-gradient(135deg, rgba(13, 19, 36, 0.95), rgba(24, 32, 60, 0.95));
+  border: 1.5px solid var(--neon-cyan);
+  box-shadow: var(--glow-cyan), 0 20px 40px rgba(0, 0, 0, 0.55);
+  border-radius: 20px;
+  padding: 16px 32px;
+  animation: itemPop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  backdrop-filter: blur(10px);
+}
+#itemBanner.hidden { display: none !important; }
+#itemBannerIcon { font-size: 3.4rem; display: block; margin-bottom: 4px; filter: drop-shadow(0 0 12px rgba(0, 240, 255, 0.55)); }
+#itemBannerTitle { font-size: 1.25rem; font-weight: 700; color: var(--neon-cyan); text-transform: uppercase; letter-spacing: 1px; }
+#itemBannerDesc { font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-top: 4px; }
+@keyframes itemPop {
+  0% { transform: translate(-50%, -50%) scale(0.3) rotate(-8deg); opacity: 0; }
+  70% { transform: translate(-50%, -50%) scale(1.08) rotate(2deg); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; }
+}
+
+/* ============ COUNTDOWN ============ */
+#countdownOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 15;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  background: rgba(0, 0, 0, 0.25);
+}
+#countdownOverlay.hidden { display: none !important; }
+#countdownText {
+  font-size: 5.5rem;
+  font-weight: 800;
+  color: var(--neon-cyan);
+  text-shadow: 0 0 24px rgba(0, 240, 255, 0.8), 0 0 60px rgba(168, 85, 247, 0.5);
+  animation: bounceNum 0.5s ease;
+}
+@keyframes bounceNum {
+  0% { transform: scale(0.3); opacity: 0; }
+  60% { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* ============ QUIZ MODAL ============ */
+#quizModal {
+  position: fixed;
+  inset: 0;
+  z-index: 25;
+  background: rgba(7, 11, 22, 0.82);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+#quizModal.hidden { display: none !important; }
+.item-box-card {
+  background: linear-gradient(145deg, rgba(13, 19, 36, 0.98), rgba(24, 32, 56, 0.98));
+  border: 1.5px solid rgba(0, 240, 255, 0.45);
+  box-shadow: var(--glow-cyan), 0 20px 40px rgba(0, 0, 0, 0.55);
+  border-radius: 20px;
+  padding: 22px;
+  max-width: 500px;
+  width: 100%;
+  text-align: center;
+  animation: neonFadeIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.item-badge {
+  display: inline-block;
+  background: linear-gradient(90deg, var(--neon-cyan), var(--neon-purple));
+  color: #fff;
+  padding: 5px 16px;
+  border-radius: 99px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  margin-bottom: 10px;
+  box-shadow: var(--glow-cyan);
+  letter-spacing: 1px;
+}
+.quiz-q { font-size: 1.02rem; font-weight: 700; color: var(--text-primary); line-height: 1.45; margin-bottom: 16px; }
+.quiz-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.quiz-opts.vocab { grid-template-columns: 1fr; }
+
+/* ============ TOUCH CONTROLS ============ */
+#touchControls {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  width: 100%;
+  pointer-events: none;
+  padding: 0 8px 6px 8px;
+}
+.touch-group { display: flex; gap: 14px; align-items: center; pointer-events: auto; }
+.touch-btn {
+  width: 76px; height: 76px;
+  border-radius: 50%;
+  background: rgba(13, 19, 36, 0.85);
+  border: 2px solid rgba(0, 240, 255, 0.4);
+  color: var(--neon-cyan);
+  font-size: 1.6rem;
+  font-weight: 700;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  touch-action: manipulation;
+  cursor: pointer;
+  position: relative;
+  backdrop-filter: blur(4px);
+  transition: all 0.1s;
+}
+.touch-btn:active, .touch-btn.pressed {
+  transform: scale(0.92);
+  border-color: var(--neon-cyan);
+  box-shadow: var(--glow-cyan);
+  background: rgba(0, 240, 255, 0.18);
+}
+.btn-sub-key {
+  font-size: 0.55rem;
+  font-weight: 700;
+  background: rgba(0, 240, 255, 0.22);
+  color: var(--neon-cyan);
+  padding: 1px 6px;
+  border-radius: 6px;
+  position: absolute;
+  bottom: -6px;
+}
+#btnUseItem {
+  background: rgba(20, 28, 52, 0.85);
+  border-color: rgba(148, 163, 184, 0.35);
+  color: var(--text-muted);
+  opacity: 0.65;
+}
+#btnUseItem.has-item {
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.35), rgba(168, 85, 247, 0.15));
+  border-color: var(--neon-purple);
+  color: #e9d5ff;
+  opacity: 1;
+  animation: pulseItem 1.1s infinite;
+  box-shadow: var(--glow-purple);
+}
+@keyframes pulseItem {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.06); }
+}
+#btnNitro {
+  background: linear-gradient(135deg, rgba(250, 204, 21, 0.25), rgba(255, 107, 43, 0.2)) !important;
+  border-color: var(--neon-yellow) !important;
+  color: var(--neon-yellow) !important;
+}
+
+/* ============ LOBBY ============ */
+.slot-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 12px 0; }
+.slot {
+  background: var(--dark-card);
+  border: 1px solid rgba(0, 240, 255, 0.2);
+  padding: 10px 12px;
+  border-radius: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+.slot.me { border-color: var(--neon-cyan); background: rgba(0, 240, 255, 0.08); }
+.slot.ready { border-color: var(--neon-green); background: rgba(34, 214, 94, 0.1); }
+.slot.empty { opacity: 0.45; }
+
+/* ============ TOAST ============ */
+#toastBox {
+  position: fixed;
+  top: 72px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  pointer-events: none;
+}
+.toast {
+  background: rgba(13, 19, 36, 0.95);
+  border: 1px solid rgba(0, 240, 255, 0.45);
+  box-shadow: var(--glow-cyan);
+  color: var(--text-primary);
+  padding: 8px 18px;
+  border-radius: 99px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  animation: neonFadeIn 0.2s ease;
+  backdrop-filter: blur(6px);
+}
+.toast.ok { border-color: var(--neon-green); color: var(--neon-green); box-shadow: 0 0 12px rgba(34, 214, 94, 0.35); }
+.toast.bad { border-color: var(--neon-magenta); color: var(--neon-magenta); box-shadow: 0 0 12px rgba(244, 63, 158, 0.35); }
+
+/* ============ PODIUM ============ */
+.podium-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 14px;
+  background: var(--dark-card);
+  border: 1px solid rgba(0, 240, 255, 0.2);
+  border-radius: 12px;
+  margin-bottom: 8px;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+.podium-row:first-child {
+  border-color: var(--neon-yellow);
+  background: rgba(250, 204, 21, 0.1);
+  box-shadow: 0 0 12px rgba(250, 204, 21, 0.25);
+}
+
+/* ============ SPECTATOR ============ */
+#spectatorHud { position: fixed; inset: 0; pointer-events: none; z-index: 8; }
+#spectatorHud.hidden { display: none !important; }
+.spec-banner {
+  position: fixed;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(13, 19, 36, 0.9);
+  color: var(--text-primary);
+  border: 1px solid rgba(0, 240, 255, 0.35);
+  border-radius: 14px;
+  padding: 8px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  pointer-events: auto;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: 94vw;
+  backdrop-filter: blur(6px);
+  box-shadow: var(--glow-cyan);
+}
+.spec-banner b { color: var(--neon-cyan); }
+.spec-cam-btns { display: flex; gap: 8px; }
+
+.neon-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--neon-cyan), var(--neon-purple), transparent);
+  margin: 10px 0;
+  opacity: 0.45;
+}
+.section-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+/* ============ RESPONSIVE ============ */
+@media (max-width: 820px) {
+  #screen-menu { padding: 10px 12px; }
+  .logo-main { font-size: 1.25rem; }
+  .track-card { width: 84px; padding: 7px 5px; }
+  .track-card .icon { font-size: 1.35rem; }
+  .track-card .tname { font-size: 0.58rem; }
+  .menu-mode-stack { width: 190px; }
+  .btn-gara { padding: 9px 14px; font-size: 0.85rem; }
+  .btn-race { padding: 9px 22px; font-size: 1rem; }
+  .gauge-circle { width: 52px; height: 52px; }
+  .hud-pill { padding: 4px 10px; }
+  .touch-btn { width: 64px; height: 64px; font-size: 1.35rem; }
+}
+
+  </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-    <style>
-    :root {
-          --sky-blue: #38bdf8;
-          --sun-yellow: #facc15;
-          --kart-red: #ff3b30;
-          --kart-green: #34c759;
-          --kart-orange: #ff9500;
-          --kart-purple: #af52de;
-          --dark-ink: #1e293b;
-          --white: #ffffff;
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
-        body {
-          font-family: 'Fredoka', 'Segoe UI', sans-serif;
-          background: #38bdf8;
-          color: var(--dark-ink);
-          overflow: hidden;
-          width: 100vw;
-          height: 100vh;
-        }
-        #gameCanvas {
-          position: fixed;
-          inset: 0;
-          width: 100%;
-          height: 100%;
-          display: block;
-          z-index: 1;
-        }
-
-        /* Force Landscape Overlay */
-        #landscapeWarning {
-          position: fixed;
-          inset: 0;
-          z-index: 100;
-          background: #0f172a;
-          color: #ffffff;
-          display: none;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          text-align: center;
-          padding: 24px;
-          font-family: 'Fredoka', sans-serif;
-        }
-        #landscapeWarning .phone-icon {
-          font-size: 4rem;
-          animation: rotatePhone 1.5s infinite ease-in-out;
-          margin-bottom: 16px;
-        }
-        @keyframes rotatePhone {
-          0%, 100% { transform: rotate(0deg); }
-          50% { transform: rotate(-90deg); }
-        }
-        @media (orientation: portrait) {
-          #landscapeWarning { display: flex !important; }
-        }
-
-        /* Arcade Cartoon Screens */
-        .screen {
-          position: fixed;
-          inset: 0;
-          z-index: 10;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          padding: 16px;
-          background: radial-gradient(circle at center, rgba(56, 189, 248, 0.45), rgba(14, 165, 233, 0.78));
-          backdrop-filter: blur(4px);
-        }
-        .screen.hidden { display: none !important; }
-
-        .arcade-panel {
-          background: #ffffff;
-          border: 5px solid #1e293b;
-          border-radius: 28px;
-          padding: 20px 26px;
-          width: 100%;
-          max-width: 560px;
-          box-shadow: 0 12px 0 #1e293b, 0 22px 40px rgba(0,0,0,0.35);
-          position: relative;
-          animation: popIn 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
-          max-height: 94vh;
-          overflow-y: auto;
-        }
-        @keyframes popIn {
-          from { transform: scale(0.88); opacity: 0; }
-          to { transform: scale(1); opacity: 1; }
-        }
-
-        /* Mario Kart Style Logo */
-        .game-logo {
-          text-align: center;
-          margin-bottom: 14px;
-          transform: rotate(-2deg);
-        }
-        .logo-top {
-          display: inline-block;
-          background: var(--kart-red);
-          color: #fff;
-          font-size: 0.9rem;
-          font-weight: 700;
-          padding: 4px 16px;
-          border-radius: 99px;
-          border: 3px solid #1e293b;
-          box-shadow: 0 4px 0 #1e293b;
-          letter-spacing: 1px;
-          text-transform: uppercase;
-          margin-bottom: 6px;
-        }
-        .logo-main {
-          font-size: 2.15rem;
-          font-weight: 700;
-          line-height: 1.05;
-          color: #facc15;
-          text-shadow:
-            -3px -3px 0 #1e293b,
-             3px -3px 0 #1e293b,
-            -3px  3px 0 #1e293b,
-             3px  3px 0 #1e293b,
-             0px  6px 0 #1e293b;
-          letter-spacing: 1px;
-        }
-
-        .row { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
-        .col { display: flex; flex-direction: column; gap: 10px; }
-
-        input[type="text"], select {
-          font-family: 'Fredoka', sans-serif;
-          background: #f1f5f9;
-          border: 3px solid #1e293b;
-          color: #1e293b;
-          padding: 10px 14px;
-          border-radius: 16px;
-          font-size: 1rem;
-          font-weight: 600;
-          outline: none;
-          flex: 1;
-          box-shadow: inset 0 3px 0 rgba(0,0,0,0.08);
-        }
-        input[type="text"]:focus, select:focus { background: #fffbeb; border-color: #ff9500; }
-
-        /* Chunky 3D Arcade Buttons */
-        .btn-arcade {
-          font-family: 'Fredoka', sans-serif;
-          background: #e2e8f0;
-          color: #1e293b;
-          border: 3px solid #1e293b;
-          padding: 11px 18px;
-          border-radius: 18px;
-          font-size: 1rem;
-          font-weight: 700;
-          cursor: pointer;
-          box-shadow: 0 6px 0 #1e293b;
-          transition: transform 0.1s, box-shadow 0.1s;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          gap: 8px;
-        }
-        .btn-arcade:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 0 #1e293b; filter: brightness(1.05); }
-        .btn-arcade:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 2px 0 #1e293b; }
-        .btn-arcade:disabled { opacity: 0.5; cursor: not-allowed; }
-
-        .btn-go { background: linear-gradient(180deg, #4ade80, #22c55e); color: #fff; text-shadow: 0 2px 0 #15803d; }
-        .btn-gold { background: linear-gradient(180deg, #fde047, #eab308); color: #1e293b; }
-        .btn-blue { background: linear-gradient(180deg, #38bdf8, #0284c7); color: #fff; text-shadow: 0 2px 0 #0369a1; }
-        .btn-red { background: linear-gradient(180deg, #fb7185, #e11d48); color: #fff; text-shadow: 0 2px 0 #9f1239; }
-
-        .coin-pill {
-          background: #fef08a;
-          border: 3px solid #1e293b;
-          box-shadow: 0 4px 0 #1e293b;
-          padding: 8px 14px;
-          border-radius: 99px;
-          font-weight: 700;
-          font-size: 1.05rem;
-          color: #854d0e;
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-        }
-
-        /* Track Selector Cards */
-        .track-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
-        .track-card {
-          background: #f8fafc;
-          border: 3px solid #1e293b;
-          border-radius: 16px;
-          padding: 8px 6px;
-          text-align: center;
-          cursor: pointer;
-          box-shadow: 0 4px 0 #1e293b;
-          transition: all 0.12s;
-        }
-        .track-card.active {
-          background: #fef08a;
-          transform: translateY(-3px);
-          box-shadow: 0 7px 0 #1e293b;
-          border-color: #ea580c;
-        }
-        .track-card .icon { font-size: 1.6rem; display: block; margin-bottom: 3px; }
-        .track-card .tname { font-size: 0.78rem; font-weight: 700; line-height: 1.2; }
-
-        /* Garage */
-        .stat-row { margin-bottom: 10px; }
-        .stat-head { display: flex; justify-content: space-between; align-items: center; font-weight: 700; margin-bottom: 4px; font-size: 0.9rem; }
-        .meter { height: 14px; background: #e2e8f0; border: 3px solid #1e293b; border-radius: 99px; overflow: hidden; }
-        .meter-fill { height: 100%; background: linear-gradient(90deg, #fb923c, #ef4444); transition: width 0.25s; }
-        .swatches { display: flex; gap: 10px; flex-wrap: wrap; }
-        .swatch {
-          width: 34px; height: 34px; border-radius: 50%; cursor: pointer;
-          border: 3px solid #1e293b; box-shadow: 0 3px 0 #1e293b;
-          transition: transform 0.12s;
-        }
-        .swatch.active { transform: scale(1.2) rotate(8deg); border-color: #fff; outline: 3px solid #1e293b; }
-
-        /* Arcade Racing HUD */
-        #hud {
-          position: fixed;
-          inset: 0;
-          z-index: 5;
-          pointer-events: none;
-          display: flex;
-          flex-direction: column;
-          justify-content: space-between;
-          padding: 14px 18px;
-        }
-        #hud.hidden { display: none !important; }
-        .hud-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
-
-        .hud-pos-badge {
-          background: linear-gradient(180deg, #fde047, #f59e0b);
-          border: 4px solid #1e293b;
-          box-shadow: 0 5px 0 #1e293b;
-          border-radius: 20px;
-          padding: 6px 16px;
-          display: flex;
-          align-items: baseline;
-          gap: 4px;
-          transform: rotate(-2deg);
-        }
-        .hud-pos-num { font-size: 2rem; font-weight: 700; color: #fff; text-shadow: -2px -2px 0 #1e293b, 2px -2px 0 #1e293b, -2px 2px 0 #1e293b, 2px 2px 0 #1e293b; }
-        .hud-pos-sub { font-size: 1rem; font-weight: 700; color: #1e293b; }
-
-        .hud-pill {
-          background: rgba(255, 255, 255, 0.94);
-          border: 4px solid #1e293b;
-          box-shadow: 0 5px 0 #1e293b;
-          border-radius: 18px;
-          padding: 6px 14px;
-          text-align: center;
-          pointer-events: auto;
-        }
-        .hud-val { font-size: 1.25rem; font-weight: 700; color: #0284c7; }
-        .hud-lbl { font-size: 0.68rem; font-weight: 700; color: #64748b; text-transform: uppercase; }
-
-        .turbo-bar-outer {
-          width: 140px; height: 14px;
-          background: #1e293b;
-          border-radius: 99px;
-          padding: 2px;
-          margin-top: 3px;
-        }
-        #nitroBar {
-          height: 100%; width: 0%;
-          background: linear-gradient(90deg, #facc15, #f97316, #ef4444);
-          border-radius: 99px;
-          transition: width 0.08s;
-        }
-
-        /* Center-Screen Item Announcement Banner */
-        #itemBanner {
-          position: fixed;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          z-index: 22;
-          pointer-events: none;
-          text-align: center;
-          background: linear-gradient(180deg, #fffbeb, #fef08a);
-          border: 5px solid #1e293b;
-          box-shadow: 0 10px 0 #1e293b, 0 20px 35px rgba(0,0,0,0.4);
-          border-radius: 28px;
-          padding: 16px 32px;
-          animation: itemPop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-        #itemBanner.hidden { display: none !important; }
-        #itemBannerIcon { font-size: 3.6rem; display: block; margin-bottom: 4px; }
-        #itemBannerTitle { font-size: 1.5rem; font-weight: 700; color: #1e293b; text-transform: uppercase; }
-        #itemBannerDesc { font-size: 0.95rem; font-weight: 600; color: #b45309; margin-top: 2px; }
-        @keyframes itemPop {
-          0% { transform: translate(-50%, -50%) scale(0.3) rotate(-8deg); opacity: 0; }
-          70% { transform: translate(-50%, -50%) scale(1.08) rotate(2deg); opacity: 1; }
-          100% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; }
-        }
-
-        /* Countdown Overlay */
-        #countdownOverlay {
-          position: fixed;
-          inset: 0;
-          z-index: 15;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          pointer-events: none;
-        }
-        #countdownOverlay.hidden { display: none !important; }
-        #countdownText {
-          font-size: 6rem;
-          font-weight: 700;
-          color: #facc15;
-          text-shadow: -4px -4px 0 #1e293b, 4px -4px 0 #1e293b, -4px 4px 0 #1e293b, 4px 4px 0 #1e293b, 0 10px 0 #1e293b;
-          animation: bounceNum 0.5s ease;
-        }
-        @keyframes bounceNum {
-          0% { transform: scale(0.3); opacity: 0; }
-          60% { transform: scale(1.2); opacity: 1; }
-          100% { transform: scale(1); opacity: 1; }
-        }
-
-        /* Timed 30s English Quiz Modal (5 QUESTIONS PER MATCH) */
-        #quizModal {
-          position: fixed;
-          inset: 0;
-          z-index: 25;
-          background: rgba(15, 23, 42, 0.72);
-          backdrop-filter: blur(4px);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 16px;
-        }
-        #quizModal.hidden { display: none !important; }
-        .item-box-card {
-          background: linear-gradient(180deg, #fffbeb, #ffffff);
-          border: 5px solid #1e293b;
-          box-shadow: 0 12px 0 #1e293b;
-          border-radius: 28px;
-          padding: 22px;
-          max-width: 500px;
-          width: 100%;
-          text-align: center;
-          animation: popIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-        .item-badge {
-          display: inline-block;
-          background: linear-gradient(90deg, #f59e0b, #ec4899);
-          color: #fff;
-          border: 3px solid #1e293b;
-          padding: 5px 16px;
-          border-radius: 99px;
-          font-size: 0.85rem;
-          font-weight: 700;
-          margin-bottom: 10px;
-          box-shadow: 0 3px 0 #1e293b;
-        }
-        .quiz-q { font-size: 1.15rem; font-weight: 700; color: #1e293b; line-height: 1.4; margin-bottom: 16px; }
-        .quiz-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        .quiz-opts.vocab { grid-template-columns: 1fr; }
-
-        /* Touch & Action Controls */
-        #touchControls {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-end;
-          width: 100%;
-          pointer-events: none;
-          padding: 0 8px 6px 8px;
-        }
-        .touch-group { display: flex; gap: 14px; align-items: center; pointer-events: auto; }
-        .touch-btn {
-          width: 78px; height: 78px;
-          border-radius: 50%;
-          background: rgba(255, 255, 255, 0.92);
-          border: 4px solid #1e293b;
-          box-shadow: 0 6px 0 #1e293b;
-          color: #1e293b;
-          font-size: 1.75rem;
-          font-weight: 700;
-          display: flex; flex-direction: column; align-items: center; justify-content: center;
-          touch-action: manipulation;
-          cursor: pointer;
-          position: relative;
-        }
-        .touch-btn:active, .touch-btn.pressed { transform: translateY(4px); box-shadow: 0 2px 0 #1e293b; background: #fde047; }
-        .btn-sub-key {
-          font-size: 0.62rem;
-          font-weight: 700;
-          background: #1e293b;
-          color: #fff;
-          padding: 1px 6px;
-          border-radius: 6px;
-          position: absolute;
-          bottom: -6px;
-        }
-        #btnUseItem {
-          background: #e2e8f0;
-          opacity: 0.65;
-          transition: transform 0.15s, background 0.2s, opacity 0.2s;
-        }
-        #btnUseItem.has-item {
-          background: linear-gradient(180deg, #c084fc, #9333ea);
-          color: #fff;
-          opacity: 1;
-          animation: pulseItem 1.1s infinite;
-        }
-        @keyframes pulseItem {
-          0%, 100% { transform: scale(1); }
-          50% { transform: scale(1.07); }
-        }
-
-        /* Lobby */
-        .slot-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 12px 0; }
-        .slot {
-          background: #f1f5f9;
-          border: 3px solid #1e293b;
-          padding: 10px 12px;
-          border-radius: 16px;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          font-weight: 700;
-        }
-        .slot.me { background: #e0f2fe; }
-        .slot.ready { background: #dcfce7; border-color: #16a34a; }
-        .slot.empty { opacity: 0.55; }
-
-        /* Toast */
-        #toastBox {
-          position: fixed;
-          top: 72px;
-          left: 50%;
-          transform: translateX(-50%);
-          z-index: 50;
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-          pointer-events: none;
-        }
-        .toast {
-          background: #ffffff;
-          border: 3px solid #1e293b;
-          box-shadow: 0 5px 0 #1e293b;
-          color: #1e293b;
-          padding: 8px 18px;
-          border-radius: 99px;
-          font-size: 0.92rem;
-          font-weight: 700;
-          animation: popIn 0.2s ease;
-        }
-        .toast.ok { background: #bbf7d0; }
-        .toast.bad { background: #fecdd3; }
-
-        .podium-row {
-          display: flex; justify-content: space-between; align-items: center;
-          padding: 10px 14px; background: #f8fafc; border: 3px solid #1e293b;
-          border-radius: 16px; margin-bottom: 8px; font-weight: 700;
-          box-shadow: 0 4px 0 #1e293b;
-        }
-        .podium-row:first-child { background: #fef08a; }
-
-
-        /* Spectator Mode Bar & Top-Right PiP Camera */
-        #spectatorHud {
-          position: fixed;
-          inset: 0;
-          pointer-events: none;
-          z-index: 8;
-        }
-        #spectatorHud.hidden { display: none !important; }
-        .spec-banner {
-          position: fixed;
-          bottom: 10px;
-          left: 50%;
-          transform: translateX(-50%);
-          background: transparent;
-          color: #fff;
-          border: none;
-          box-shadow: none;
-          border-radius: 18px;
-          padding: 6px 12px;
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          pointer-events: auto;
-          flex-wrap: wrap;
-          justify-content: center;
-          max-width: 94vw;
-          text-shadow: -1.5px -1.5px 0 #0f172a, 1.5px -1.5px 0 #0f172a, -1.5px 1.5px 0 #0f172a, 1.5px 1.5px 0 #0f172a, 0 3px 6px rgba(15, 23, 42, 0.85);
-        }
-        .spec-banner b { color: #fde047; }
-        .spec-cam-btns { display: flex; gap: 8px; }
-        @media (max-width: 760px) {
-  </style>
 </head>
 <body>
 
 <div id="landscapeWarning">
   <div class="phone-icon">📱</div>
-  <h2 style="font-size:1.8rem; color:#facc15; margin-bottom:10px;">VUI LÒNG XOAY NGANG MÀN HÌNH</h2>
-  <p style="font-size:1.05rem; opacity:0.85; max-width:340px;">Trò chơi đua xe 3D yêu cầu thiết bị ở chế độ màn hình ngang (Landscape) để chơi!</p>
+  <h2 style="font-size:1.6rem; color:var(--neon-cyan); margin-bottom:10px; letter-spacing:2px;">VUI LÒNG XOAY NGANG MÀN HÌNH</h2>
+  <p style="font-size:0.95rem; opacity:0.7; max-width:340px;">Trò chơi đua xe 3D yêu cầu thiết bị ở chế độ màn hình ngang (Landscape) để chơi!</p>
 </div>
 
 <canvas id="gameCanvas"></canvas>
@@ -524,58 +1055,128 @@
   <div id="itemBannerDesc">Nhấn nút Vật Phẩm (phím E) để kích hoạt!</div>
 </div>
 
-<!-- 1. ARCADE MAIN MENU -->
+<!-- 1. NEON MAIN MENU (FULLSCREEN HUD OVER LIVE 3D SHOWCASE) -->
 <div id="screen-menu" class="screen">
-  <div class="arcade-panel">
-    <div class="game-logo">
+  <!-- TOP BAR -->
+  <div class="menu-top-bar">
+    <div class="player-profile-card">
+      <div class="player-avatar">🪖</div>
+      <div class="player-info">
+        <input type="text" id="inputName" class="player-name-input" aria-label="Tên người chơi" placeholder="Racer Name…" maxlength="14" value="Turbo Kid" />
+        <div class="coin-pill">🪙 <span id="menuCoins">200</span></div>
+      </div>
+    </div>
+
+    <div class="menu-title-center">
       <div class="logo-top">⚡ Unit 5: Inventions · 3 Laps · 4 Mins</div>
-      <div class="logo-main">SUPER INVENTION<br>KART 3D!</div>
+      <div class="logo-main">SUPER INVENTION KART 3D</div>
     </div>
 
-    <div class="row">
-      <input type="text" id="inputName" aria-label="Tên người chơi" placeholder="Your Racer Name…" maxlength="14" value="Turbo Kid" />
-      <div class="coin-pill">🪙 <span id="menuCoins">200</span></div>
-      <button class="btn-arcade" id="btnMute" style="padding:10px 14px;" title="Toggle Sound">🔊</button>
+    <div class="menu-top-actions">
+      <button class="btn-arcade" id="btnMute" style="padding:10px 13px;" title="Toggle Sound">🔊</button>
+      <button class="btn-setup" data-action="open-setup">⚙ SETUP</button>
+    </div>
+  </div>
+
+  <!-- CENTER STAGE (3D Car renders live on #gameCanvas behind this) -->
+  <div class="menu-center-stage">
+    <div class="car-badge-pill" id="menuCarName">🏎️ APEX F1 CLASSIC</div>
+    <div class="stat-gauges" id="menuStatGauges">
+      <div class="stat-gauge">
+        <div class="gauge-circle">
+          <svg viewBox="0 0 60 60">
+            <circle class="gauge-track" cx="30" cy="30" r="25"/>
+            <circle class="gauge-fill" id="menuGaugeSpeed" cx="30" cy="30" r="25" style="stroke:var(--neon-cyan);"/>
+          </svg>
+          <span class="gauge-value" id="menuSpeedVal">1</span>
+        </div>
+        <span class="gauge-label">SPEED</span>
+      </div>
+      <div class="stat-gauge">
+        <div class="gauge-circle">
+          <svg viewBox="0 0 60 60">
+            <circle class="gauge-track" cx="30" cy="30" r="25"/>
+            <circle class="gauge-fill" id="menuGaugeAccel" cx="30" cy="30" r="25" style="stroke:var(--neon-purple);"/>
+          </svg>
+          <span class="gauge-value" id="menuAccelVal">1</span>
+        </div>
+        <span class="gauge-label">ACCELERATION</span>
+      </div>
+      <div class="stat-gauge">
+        <div class="gauge-circle">
+          <svg viewBox="0 0 60 60">
+            <circle class="gauge-track" cx="30" cy="30" r="25"/>
+            <circle class="gauge-fill" id="menuGaugeBoost" cx="30" cy="30" r="25" style="stroke:var(--neon-magenta);"/>
+          </svg>
+          <span class="gauge-value" id="menuBoostVal">1</span>
+        </div>
+        <span class="gauge-label">BOOST</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM DOCK -->
+  <div class="menu-bottom-dock">
+    <!-- Bottom Left: Track Selector -->
+    <div class="track-dock">
+      <button class="track-nav-btn" id="btnTrackPrev" title="Previous Track">❮</button>
+      <div class="track-cards" id="trackCardList">
+        <div class="track-card active" data-map="0">
+          <span class="icon">🌴</span>
+          <div class="tname">Sunny Beach Circuit</div>
+        </div>
+        <div class="track-card" data-map="1">
+          <span class="icon">🍭</span>
+          <div class="tname">Candy Gear Kingdom</div>
+        </div>
+        <div class="track-card" data-map="2">
+          <span class="icon">🌈</span>
+          <div class="tname">Rainbow Cyber Sky</div>
+        </div>
+      </div>
+      <button class="track-nav-btn" id="btnTrackNext" title="Next Track">❯</button>
     </div>
 
-    <div style="font-size:0.82rem; font-weight:700; margin-bottom:6px; color:#475569;">SELECT GRAND PRIX CIRCUIT:</div>
-    <div class="track-cards" id="trackCardList">
-      <div class="track-card active" data-map="0">
-        <span class="icon">🌴</span>
-        <div class="tname">Sunny Beach Circuit</div>
+    <!-- Bottom Right: Modes + Gara + RACE -->
+    <div class="menu-action-dock">
+      <div class="menu-mode-stack">
+        <button class="btn-arcade btn-mode" data-action="start-solo">
+          <span>Luyện tập với AI</span>
+          <span>🤖</span>
+        </button>
+        <button class="btn-arcade btn-mode" data-action="open-online">
+          <span>Online 4 người</span>
+          <span>🌐</span>
+        </button>
       </div>
-      <div class="track-card" data-map="1">
-        <span class="icon">🍭</span>
-        <div class="tname">Candy Gear Kingdom</div>
-      </div>
-      <div class="track-card" data-map="2">
-        <span class="icon">🌈</span>
-        <div class="tname">Rainbow Cyber Sky</div>
-      </div>
-    </div>
-
-    <div class="col">
-      <button class="btn-arcade btn-go" style="font-size:1.15rem; padding:13px;" data-action="start-solo">🏁 RACE NOW! (3 LAPS · 5 QUIZ / 30s)</button>
-      <div class="row" style="margin-bottom:0;">
-        <button class="btn-arcade btn-gold" style="flex:1;" data-action="open-garage">🏎️ KART GARAGE</button>
-        <button class="btn-arcade btn-blue" style="flex:1;" data-action="open-online">🌐 4P ONLINE</button>
+      <div class="menu-primary-row">
+        <button class="btn-arcade btn-gara" data-action="open-garage">🏎️ Gara</button>
+        <button class="btn-arcade btn-race" data-action="start-solo">RACE</button>
       </div>
     </div>
   </div>
 </div>
 
-<!-- 2. KART GARAGE -->
+<!-- 2. KART GARAGE (Side Panel + Live 3D Preview) -->
 <div id="screen-garage" class="screen hidden">
-  <div class="arcade-panel">
+  <div class="arcade-panel garage-panel">
     <div class="row" style="justify-content:space-between;">
-      <h2 style="font-size:1.45rem;">🏎️ KART TUNING GARAGE</h2>
+      <h2 style="font-size:1.15rem; color:var(--neon-cyan); letter-spacing:2px;">🏎️ KART GARAGE</h2>
       <div class="coin-pill">🪙 <span id="garageCoins">200</span></div>
     </div>
 
+    <div class="neon-divider"></div>
+
+    <!-- Car Selector -->
+    <div class="section-label">CHỌN MẪU XE F1 / KART 3D</div>
+    <div class="car-selector" id="carSelectorList"></div>
+    <div class="car-desc-box" id="carDescBox">Xe đua cân bằng mọi chỉ số.</div>
+
+    <!-- Upgrade Stats -->
     <div class="stat-row">
       <div class="stat-head">
         <span>🚀 TOP SPEED (Lv.<span id="lvSpeed">1</span>/5)</span>
-        <button class="btn-arcade btn-gold" style="padding:5px 12px; font-size:0.8rem;" data-action="upg-speed">+ UPGRADE (50🪙)</button>
+        <button class="btn-arcade btn-gold" style="padding:4px 10px; font-size:0.7rem;" data-action="upg-speed">+ UPGRADE (50🪙)</button>
       </div>
       <div class="meter"><div id="barSpeed" class="meter-fill" style="width:20%"></div></div>
     </div>
@@ -583,7 +1184,7 @@
     <div class="stat-row">
       <div class="stat-head">
         <span>⚡ ACCELERATION (Lv.<span id="lvAccel">1</span>/5)</span>
-        <button class="btn-arcade btn-gold" style="padding:5px 12px; font-size:0.8rem;" data-action="upg-accel">+ UPGRADE (50🪙)</button>
+        <button class="btn-arcade btn-gold" style="padding:4px 10px; font-size:0.7rem;" data-action="upg-accel">+ UPGRADE (50🪙)</button>
       </div>
       <div class="meter"><div id="barAccel" class="meter-fill" style="width:20%"></div></div>
     </div>
@@ -591,13 +1192,15 @@
     <div class="stat-row">
       <div class="stat-head">
         <span>🔥 SUPER TURBO (Lv.<span id="lvNitro">1</span>/5)</span>
-        <button class="btn-arcade btn-gold" style="padding:5px 12px; font-size:0.8rem;" data-action="upg-nitro">+ UPGRADE (50🪙)</button>
+        <button class="btn-arcade btn-gold" style="padding:4px 10px; font-size:0.7rem;" data-action="upg-nitro">+ UPGRADE (50🪙)</button>
       </div>
       <div class="meter"><div id="barNitro" class="meter-fill" style="width:20%"></div></div>
     </div>
 
-    <div style="margin: 12px 0;">
-      <div style="font-size:0.85rem; font-weight:700; margin-bottom:6px;">🎨 PAINT YOUR KART:</div>
+    <div class="neon-divider"></div>
+
+    <div style="margin: 6px 0;">
+      <div class="section-label">🎨 MÀU SƠN NEON</div>
       <div class="swatches" id="swatchList"></div>
     </div>
 
@@ -612,12 +1215,14 @@
 <div id="screen-online" class="screen hidden">
   <div class="arcade-panel">
     <div class="row" style="justify-content:space-between;">
-      <h2 style="font-size:1.4rem;">🌐 4-PLAYER ONLINE GP</h2>
-      <span id="netStatus" style="font-size:0.85rem; font-weight:700; color:#e11d48;">● Offline</span>
+      <h2 style="font-size:1.2rem; color:var(--neon-cyan); letter-spacing:2px;">🌐 4-PLAYER ONLINE GP</h2>
+      <span id="netStatus" style="font-size:0.8rem; font-weight:700; color:var(--neon-magenta);">● Offline</span>
     </div>
 
+    <div class="neon-divider"></div>
+
     <div id="onlineJoinBox">
-      <label for="onlinePlayerName" style="display:block; font-weight:700; margin:10px 0 5px;">🏎️ TÊN HIỂN THỊ TRONG TRẬN (tối đa 14 ký tự)</label>
+      <label for="onlinePlayerName" style="display:block; font-weight:700; margin:10px 0 5px; font-size:0.82rem; color:var(--text-muted);">🏎️ TÊN HIỂN THỊ TRONG TRẬN (tối đa 14 ký tự)</label>
       <input type="text" id="onlinePlayerName" maxlength="14" autocomplete="nickname"
              placeholder="Nhập tên riêng của bạn…" value="Turbo Kid"
              style="width:100%; margin-bottom:10px;" />
@@ -627,13 +1232,13 @@
         <button class="btn-arcade btn-blue" data-action="net-join">JOIN</button>
         <button class="btn-arcade" data-action="net-spectate">👁️</button>
       </div>
-      <p style="font-size:0.78rem; color:#475569; margin-top:7px;">Mỗi người chơi cần một tên khác nhau trong cùng phòng.</p>
+      <p style="font-size:0.72rem; color:var(--text-muted); margin-top:7px;">Mỗi người chơi cần một tên khác nhau trong cùng phòng.</p>
     </div>
 
     <div id="onlineLobbyBox" class="hidden">
-      <div class="row" style="background:#f1f5f9; border:3px solid #1e293b; padding:10px; border-radius:14px; justify-content:space-between;">
-        <div>ID: <b id="roomCode" style="color:#0284c7; font-family:monospace;">----</b></div>
-        <button class="btn-arcade btn-gold" style="padding:5px 10px; font-size:0.8rem;" data-action="net-copy">📋 COPY</button>
+      <div class="row" style="background:var(--dark-card); border:1px solid var(--dark-border); padding:10px; border-radius:12px; justify-content:space-between;">
+        <div style="font-size:0.85rem;">ID: <b id="roomCode" style="color:var(--neon-cyan); font-family:monospace;">----</b></div>
+        <button class="btn-arcade btn-gold" style="padding:4px 10px; font-size:0.7rem;" data-action="net-copy">📋 COPY</button>
       </div>
       <div class="slot-grid" id="playerSlots">
         <div class="slot empty"><b>Waiting…</b><em></em></div>
@@ -666,26 +1271,26 @@
 
     <div class="hud-pill">
       <div class="hud-lbl">TIME · QUIZ (<span id="hudQuizCount">0</span>/5)</div>
-      <div class="hud-val" style="color:#e11d48;"><span id="hudTimer">04:00</span></div>
+      <div class="hud-val" style="color:var(--neon-magenta);"><span id="hudTimer">04:00</span></div>
     </div>
 
     <div class="hud-pill">
       <div class="hud-lbl">SPEED · TURBO</div>
-      <div class="hud-val"><span id="hudSpeed">0</span> <small style="font-size:0.8rem;">KM/H</small></div>
+      <div class="hud-val"><span id="hudSpeed">0</span> <small style="font-size:0.7rem;">KM/H</small></div>
       <div class="turbo-bar-outer"><div id="nitroBar"></div></div>
     </div>
 
-    <button class="btn-arcade btn-red" style="padding:8px 14px; font-size:0.85rem; pointer-events:auto;" data-action="quit-race">✖ EXIT</button>
+    <button class="btn-arcade btn-red" style="padding:8px 14px; font-size:0.75rem; pointer-events:auto;" data-action="quit-race">✖ EXIT</button>
   </div>
 
-  <!-- SPECTATOR MODE OVERLAY & MINI TOP-DOWN VIEW -->
+  <!-- SPECTATOR MODE OVERLAY -->
   <div id="spectatorHud" class="hidden">
     <div class="spec-banner">
       <span>👁️ CHẾ ĐỘ KHÁN GIẢ · ĐANG XEM: <b id="specTargetName">---</b></span>
       <div class="spec-cam-btns">
-        <button class="btn-arcade btn-blue" style="padding:6px 12px; font-size:0.8rem;" id="btnSpecPrev">◀ ĐỔI XE</button>
-        <button class="btn-arcade btn-gold" style="padding:6px 12px; font-size:0.8rem;" id="btnSpecNext">ĐỔI XE ▶</button>
-        <button class="btn-arcade btn-go" style="padding:6px 12px; font-size:0.8rem;" id="btnSpecLeader">👑 DẪN ĐẦU</button>
+        <button class="btn-arcade btn-blue" style="padding:6px 12px; font-size:0.7rem;" id="btnSpecPrev">◀ ĐỔI XE</button>
+        <button class="btn-arcade btn-gold" style="padding:6px 12px; font-size:0.7rem;" id="btnSpecNext">ĐỔI XE ▶</button>
+        <button class="btn-arcade btn-go" style="padding:6px 12px; font-size:0.7rem;" id="btnSpecLeader">👑 DẪN ĐẦU</button>
       </div>
     </div>
   </div>
@@ -701,7 +1306,7 @@
         <span id="heldItemIcon">📦</span>
         <span class="btn-sub-key" id="heldItemLabel">TRỐNG (E)</span>
       </div>
-      <div class="touch-btn" id="btnNitro" style="background:#fde047;">
+      <div class="touch-btn" id="btnNitro">
         🔥
         <span class="btn-sub-key">SPACE</span>
       </div>
@@ -722,11 +1327,35 @@
 <div id="screen-results" class="screen hidden">
   <div class="arcade-panel">
     <div class="game-logo" style="margin-bottom:10px;">
-      <div class="logo-main" style="font-size:2rem;">🏆 GRAND PRIX PODIUM!</div>
+      <div class="logo-main" style="font-size:1.8rem;">🏆 GRAND PRIX PODIUM!</div>
     </div>
-    <p id="resultSubtitle" style="text-align:center; font-weight:700; margin-bottom:14px; color:#0284c7;"></p>
+    <p id="resultSubtitle" style="text-align:center; font-weight:700; margin-bottom:14px; color:var(--neon-cyan); font-size:0.9rem;"></p>
     <div id="leaderboardList" style="margin-bottom:16px;"></div>
     <button class="btn-arcade btn-go" style="width:100%;" data-action="back-menu">🏠 BACK TO MAIN MENU</button>
+  </div>
+</div>
+
+<!-- 7. SETUP MODAL -->
+<div id="setupModal" class="hidden">
+  <div class="arcade-panel" style="max-width:440px;">
+    <div class="row" style="justify-content:space-between; margin-bottom:8px;">
+      <h2 style="font-size:1.15rem; color:var(--neon-cyan); letter-spacing:2px;">⚙ CÀI ĐẶT (SETUP)</h2>
+      <button class="btn-arcade btn-red" style="padding:5px 12px; font-size:0.75rem;" data-action="close-setup">✖</button>
+    </div>
+    <div class="neon-divider"></div>
+    <div class="setup-row">
+      <span>🔊 Âm thanh & Nhạc nền</span>
+      <button class="btn-arcade btn-blue" id="btnSetupMute" style="padding:6px 14px; font-size:0.75rem;" data-action="toggle-sound">BẬT</button>
+    </div>
+    <div class="setup-row" style="flex-direction:column; align-items:stretch; gap:6px;">
+      <span style="color:var(--text-muted); font-size:0.75rem;">⌨️ HƯỚNG DẪN ĐIỀU KHIỂN</span>
+      <div style="font-size:0.78rem; line-height:1.6;">
+        • <b>A / D</b> hoặc <b>◀ / ▶</b>: Đánh lái trái / phải<br>
+        • <b>SPACE / N</b>: Kích hoạt Nitro tăng tốc<br>
+        • <b>E / SHIFT</b>: Dùng vật phẩm nhặt được
+      </div>
+    </div>
+    <button class="btn-arcade btn-go" style="width:100%; margin-top:8px;" data-action="close-setup">✔ XONG</button>
   </div>
 </div>
 
@@ -851,6 +1480,8 @@ const SoundFX = (function() {
   };
 })();
 
+</script>
+<script>
 /* ==========================================================================
    2. CORE STATE & ENGLISH 10 UNIT 5: INVENTIONS DATA
    ========================================================================== */
@@ -883,6 +1514,7 @@ const SoundFX = (function() {
           if (el) el.classList.remove('hidden');
         }
         this.syncCoins();
+        G.emit('ui:screen', screenName);
       },
       syncCoins() {
         const mc = document.getElementById('menuCoins');
@@ -958,18 +1590,48 @@ const SoundFX = (function() {
   };
 
   // Track Card Selection
+  function selectTrack(mapIdx) {
+    const cards = Array.from(document.querySelectorAll('.track-card'));
+    const idx = ((mapIdx % cards.length) + cards.length) % cards.length;
+    cards.forEach(c => c.classList.remove('active'));
+    if (cards[idx]) cards[idx].classList.add('active');
+    G.state.map = idx;
+  }
+
   document.querySelectorAll('.track-card').forEach(card => {
     card.addEventListener('click', () => {
       SoundFX.click();
-      document.querySelectorAll('.track-card').forEach(c => c.classList.remove('active'));
-      card.classList.add('active');
-      G.state.map = parseInt(card.getAttribute('data-map'), 10) || 0;
+      selectTrack(parseInt(card.getAttribute('data-map'), 10) || 0);
     });
   });
 
-  document.getElementById('btnMute').addEventListener('click', (e) => {
-    const m = SoundFX.toggleMute();
-    e.target.textContent = m ? '🔇' : '🔊';
+  const btnPrev = document.getElementById('btnTrackPrev');
+  const btnNext = document.getElementById('btnTrackNext');
+  if (btnPrev) btnPrev.addEventListener('click', () => { SoundFX.click(); selectTrack(G.state.map - 1); });
+  if (btnNext) btnNext.addEventListener('click', () => { SoundFX.click(); selectTrack(G.state.map + 1); });
+
+  function syncMuteButtons(isMuted) {
+    const muteBtn = document.getElementById('btnMute');
+    const setupMuteBtn = document.getElementById('btnSetupMute');
+    if (muteBtn) muteBtn.textContent = isMuted ? '🔇' : '🔊';
+    if (setupMuteBtn) setupMuteBtn.textContent = isMuted ? 'TẮT 🔇' : 'BẬT 🔊';
+  }
+
+  document.getElementById('btnMute').addEventListener('click', () => {
+    syncMuteButtons(SoundFX.toggleMute());
+  });
+
+  G.on('action:toggle-sound', () => {
+    syncMuteButtons(SoundFX.toggleMute());
+  });
+  G.on('action:open-setup', () => {
+    const modal = document.getElementById('setupModal');
+    if (modal) modal.classList.remove('hidden');
+    syncMuteButtons(SoundFX.isMuted());
+  });
+  G.on('action:close-setup', () => {
+    const modal = document.getElementById('setupModal');
+    if (modal) modal.classList.add('hidden');
   });
 
   document.addEventListener('click', (e) => {
@@ -993,12 +1655,94 @@ const SoundFX = (function() {
   root.GameApp = G;
 })(window);
 
+</script>
+<script>
 /* ==========================================================================
-   3. KART GARAGE & CUSTOMIZATION
+   3. KART GARAGE & CUSTOMIZATION — NEON RACING EDITION
    ========================================================================== */
 (function(G) {
   'use strict';
-  const KART_COLORS = ['#ff3b30', '#34c759', '#007aff', '#ffcc00', '#af52de', '#ff9500', '#ff2d55', '#ffffff'];
+  const KART_COLORS = ['#ff3b30', '#00f0ff', '#a855f7', '#22d65e', '#f43f9e', '#ff6b2b', '#3b82f6', '#ffffff'];
+
+  /* ---- CAR MODELS ---- */
+  const CAR_MODELS = [
+    {
+      id: 'kart-classic',
+      name: 'Classic Kart',
+      icon: '🏎️',
+      description: 'Xe kart cổ điển cân bằng mọi chỉ số.',
+      baseMult: { speed: 1.0, accel: 1.0, nitro: 1.0 },
+      price: 0,
+      unlocked: true
+    },
+    {
+      id: 'neon-phantom',
+      name: 'Neon Phantom',
+      icon: '👻',
+      description: 'Siêu tốc bóng ma — tốc độ tối thượng nhưng khó điều khiển.',
+      baseMult: { speed: 1.18, accel: 0.88, nitro: 1.05 },
+      price: 0,
+      unlocked: true
+    },
+    {
+      id: 'cyber-dragon',
+      name: 'Cyber Dragon',
+      icon: '🐉',
+      description: 'Rồng máy — tăng tốc mạnh mẽ, turbo dữ dội.',
+      baseMult: { speed: 0.95, accel: 1.15, nitro: 1.20 },
+      price: 0,
+      unlocked: true
+    },
+    {
+      id: 'storm-breaker',
+      name: 'Storm Breaker',
+      icon: '⚡',
+      description: 'Phá bão — cân bằng tuyệt hảo với turbo tuyệt vời.',
+      baseMult: { speed: 1.08, accel: 1.08, nitro: 1.10 },
+      price: 150,
+      unlocked: false
+    },
+    {
+      id: 'inferno-x',
+      name: 'Inferno X',
+      icon: '🔥',
+      description: 'Hỏa ngục — siêu nhanh, bốc cháy khi nitro.',
+      baseMult: { speed: 1.22, accel: 0.82, nitro: 1.15 },
+      price: 200,
+      unlocked: false
+    },
+    {
+      id: 'glacier-prime',
+      name: 'Glacier Prime',
+      icon: '❄️',
+      description: 'Băng giá — điều khiển mượt mà, bám đường tốt nhất.',
+      baseMult: { speed: 0.92, accel: 1.20, nitro: 1.08 },
+      price: 200,
+      unlocked: false
+    },
+    {
+      id: 'shadow-viper',
+      name: 'Shadow Viper',
+      icon: '🐍',
+      description: 'Rắn bóng đêm — tốc độ khủng khiếp, turbo cực mạnh.',
+      baseMult: { speed: 1.15, accel: 1.0, nitro: 1.25 },
+      price: 300,
+      unlocked: false
+    }
+  ];
+
+  // Load unlock/selection state
+  let selectedCarId = localStorage.getItem('sik_car') || 'kart-classic';
+  let unlockedCars = JSON.parse(localStorage.getItem('sik_unlocked_cars') || '["kart-classic","neon-phantom","cyber-dragon"]');
+
+  function getSelectedCar() {
+    return CAR_MODELS.find(c => c.id === selectedCarId) || CAR_MODELS[0];
+  }
+
+  function saveCarState() {
+    localStorage.setItem('sik_car', selectedCarId);
+    localStorage.setItem('sik_unlocked_cars', JSON.stringify(unlockedCars));
+  }
 
   function renderGarage() {
     const u = G.state.upgrades;
@@ -1010,6 +1754,51 @@ const SoundFX = (function() {
     document.getElementById('barAccel').style.width = (u.accel * 20) + '%';
     document.getElementById('barNitro').style.width = (u.nitro * 20) + '%';
 
+    // Car selector
+    const selectorEl = document.getElementById('carSelectorList');
+    const descBox = document.getElementById('carDescBox');
+    const currentCar = getSelectedCar();
+    if (descBox) {
+      descBox.textContent = `${currentCar.icon} ${currentCar.name}: ${currentCar.description}`;
+    }
+    if (selectorEl) {
+      selectorEl.innerHTML = '';
+      CAR_MODELS.forEach(car => {
+        const isUnlocked = unlockedCars.includes(car.id);
+        const isSelected = car.id === selectedCarId;
+        const card = document.createElement('div');
+        card.className = 'car-select-card' + (isSelected ? ' active' : '') + (!isUnlocked ? ' locked' : '');
+        card.innerHTML = `
+          <div class="car-mini-icon">${car.icon}</div>
+          <div class="car-mini-name">${car.name}</div>
+          ${!isUnlocked ? `<div class="car-mini-price">${car.price} 🪙</div>` : ''}
+        `;
+        card.onclick = () => {
+          if (!isUnlocked) {
+            if (G.state.coins >= car.price) {
+              G.state.coins -= car.price;
+              unlockedCars.push(car.id);
+              saveCarState();
+              G.save();
+              SoundFX.correct();
+              G.ui.toast(`Đã mua ${car.name}!`, 'ok');
+            } else {
+              G.ui.toast(`Cần ${car.price} Xu để mua ${car.name}!`, 'bad');
+              return;
+            }
+          }
+          SoundFX.click();
+          selectedCarId = car.id;
+          saveCarState();
+          renderGarage();
+          updateMenuGauges();
+          G.emit('garage:changed');
+        };
+        selectorEl.appendChild(card);
+      });
+    }
+
+    // Color swatches
     const list = document.getElementById('swatchList');
     list.innerHTML = '';
     KART_COLORS.forEach(c => {
@@ -1021,6 +1810,7 @@ const SoundFX = (function() {
         G.state.color = c;
         G.save();
         renderGarage();
+        G.emit('garage:changed');
       };
       list.appendChild(s);
     });
@@ -1034,20 +1824,73 @@ const SoundFX = (function() {
     G.state.upgrades[key]++;
     G.save();
     renderGarage();
+    updateMenuGauges();
     SoundFX.correct();
     G.ui.toast('Upgraded ' + key.toUpperCase() + '!', 'ok');
   }
 
+  /* ---- Menu Stat Gauges Update ---- */
+  function updateMenuGauges() {
+    const u = G.state.upgrades;
+    const car = getSelectedCar();
+    const arcLen = 118; // 270 deg arc on r=25
+
+    const nameEl = document.getElementById('menuCarName');
+    if (nameEl) nameEl.textContent = `${car.icon} ${car.name.toUpperCase()}`;
+
+    const speedLevel = u.speed;
+    const accelLevel = u.accel;
+    const boostLevel = u.nitro;
+
+    // Speed gauge
+    const speedGauge = document.getElementById('menuGaugeSpeed');
+    const speedVal = document.getElementById('menuSpeedVal');
+    if (speedGauge && speedVal) {
+      speedGauge.style.strokeDasharray = `${(speedLevel / 5) * arcLen} 157`;
+      speedGauge.style.strokeDashoffset = 0;
+      speedVal.textContent = speedLevel + '/5';
+    }
+
+    // Accel gauge
+    const accelGauge = document.getElementById('menuGaugeAccel');
+    const accelVal = document.getElementById('menuAccelVal');
+    if (accelGauge && accelVal) {
+      accelGauge.style.strokeDasharray = `${(accelLevel / 5) * arcLen} 157`;
+      accelGauge.style.strokeDashoffset = 0;
+      accelVal.textContent = accelLevel + '/5';
+    }
+
+    // Boost gauge
+    const boostGauge = document.getElementById('menuGaugeBoost');
+    const boostVal = document.getElementById('menuBoostVal');
+    if (boostGauge && boostVal) {
+      boostGauge.style.strokeDasharray = `${(boostLevel / 5) * arcLen} 157`;
+      boostGauge.style.strokeDashoffset = 0;
+      boostVal.textContent = boostLevel + '/5';
+    }
+  }
+
+  // Initialize gauges on load
+  setTimeout(updateMenuGauges, 100);
+
   G.garage = {
     getStats() {
       const u = G.state.upgrades;
-      return { maxSpeed: 46 + u.speed * 4, accel: 28 + u.accel * 3, nitroMax: 100 + u.nitro * 20 };
+      const car = getSelectedCar();
+      return {
+        maxSpeed: Math.round((46 + u.speed * 4) * car.baseMult.speed),
+        accel: Math.round((28 + u.accel * 3) * car.baseMult.accel),
+        nitroMax: Math.round((100 + u.nitro * 20) * car.baseMult.nitro)
+      };
     },
-    getSkin() { return { color: G.state.color }; }
+    getSkin() { return { color: G.state.color, carModelId: selectedCarId }; },
+    getCarModel() { return getSelectedCar(); },
+    getCarModels() { return CAR_MODELS; },
+    updateMenuGauges: updateMenuGauges
   };
 
   G.on('action:open-garage', () => { renderGarage(); G.ui.show('garage'); });
-  G.on('action:back-menu', () => { if (G.race) G.race.stop(); G.ui.show('menu'); });
+  G.on('action:back-menu', () => { if (G.race) G.race.stop(); G.ui.show('menu'); updateMenuGauges(); });
   G.on('action:upg-speed', () => upgradeStat('speed'));
   G.on('action:upg-accel', () => upgradeStat('accel'));
   G.on('action:upg-nitro', () => upgradeStat('nitro'));
@@ -2350,40 +3193,221 @@ const SoundFX = (function() {
     car.aiOffset += (car.aiTargetOffset - car.aiOffset) * Math.min(1, dt * 3.5);
   }
 
-  function createKartMesh(colorHex) {
+  /* ---- Neon Glow Material Helpers ---- */
+  function createNeonLineMat(color, opacity) {
+    return new THREE.MeshBasicMaterial({
+      color: color || 0x00f0ff,
+      transparent: true,
+      opacity: opacity || 0.7,
+      side: THREE.DoubleSide
+    });
+  }
+
+  function addNeonEdge(parent, geo, color, x, y, z, rx, ry, rz) {
+    const mat = createNeonLineMat(color, 0.55);
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(x || 0, y || 0, z || 0);
+    if (rx) mesh.rotation.x = rx;
+    if (ry) mesh.rotation.y = ry;
+    if (rz) mesh.rotation.z = rz;
+    parent.add(mesh);
+    return mesh;
+  }
+
+  function createKartMesh(colorHex, carModelId) {
     const kart = new THREE.Group();
-    const paintMat = new THREE.MeshLambertMaterial({ color: colorHex });
-    const whiteMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
-    const tireMat = new THREE.MeshLambertMaterial({ color: 0x1e293b });
-    const chromeMat = new THREE.MeshLambertMaterial({ color: 0xcbd5e1 });
+    const col = new THREE.Color(colorHex);
+    const paintMat = new THREE.MeshLambertMaterial({ color: col });
+    const darkMat = new THREE.MeshLambertMaterial({ color: 0x111827 });
+    const whiteMat = new THREE.MeshLambertMaterial({ color: 0xe8ecf4 });
+    const tireMat = new THREE.MeshLambertMaterial({ color: 0x0a0e1a });
+    const chromeMat = new THREE.MeshLambertMaterial({ color: 0x94a3b8 });
+    const neonMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff, transparent: true, opacity: 0.6 });
+    const neonPurpleMat = new THREE.MeshBasicMaterial({ color: 0xa855f7, transparent: true, opacity: 0.6 });
 
-    const body = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.65, 3.8), paintMat);
-    body.position.set(0, 0.55, 0);
-    const nose = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.55, 1.2), whiteMat);
-    nose.position.set(0, 0.52, 2.0);
-    kart.add(body, nose);
+    // Select build variant based on carModelId
+    const modelType = carModelId || 'kart-classic';
 
-    const podL = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.5, 2.0), paintMat); podL.position.set(-1.1, 0.5, 0);
-    const podR = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.5, 2.0), paintMat); podR.position.set(1.1, 0.5, 0);
-    kart.add(podL, podR);
+    if (modelType === 'neon-phantom') {
+      // ---- NEON PHANTOM: Sleek low-profile racer ----
+      const body = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.5, 4.2), paintMat);
+      body.position.set(0, 0.5, 0);
+      const bodyTop = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.35, 2.4), darkMat);
+      bodyTop.position.set(0, 0.85, -0.3);
+      const nose = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.4, 1.6), paintMat);
+      nose.position.set(0, 0.42, 2.2);
+      const noseWedge = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.2, 0.6), chromeMat);
+      noseWedge.position.set(0, 0.5, 3.0);
+      kart.add(body, bodyTop, nose, noseWedge);
 
-    const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.65, 0.9, 12), whiteMat);
-    torso.position.set(0, 1.15, -0.2);
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.62, 16, 16), paintMat);
-    head.position.set(0, 1.85, -0.15);
-    const visor = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.32, 0.5), new THREE.MeshBasicMaterial({ color: 0x0f172a }));
-    visor.position.set(0, 1.88, 0.35);
-    kart.add(torso, head, visor);
+      // Side pods with neon strips
+      const podL = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.4, 2.8), paintMat); podL.position.set(-1.3, 0.45, 0);
+      const podR = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.4, 2.8), paintMat); podR.position.set(1.3, 0.45, 0);
+      kart.add(podL, podR);
 
-    const pipeGeo = new THREE.CylinderGeometry(0.18, 0.22, 1.1, 10);
-    pipeGeo.rotateX(Math.PI / 3);
-    const pipeL = new THREE.Mesh(pipeGeo, chromeMat); pipeL.position.set(-0.55, 1.0, -2.0);
-    const pipeR = new THREE.Mesh(pipeGeo, chromeMat); pipeR.position.set(0.55, 1.0, -2.0);
-    kart.add(pipeL, pipeR);
+      // Neon edge strips
+      addNeonEdge(kart, new THREE.BoxGeometry(0.08, 0.15, 4.4), 0x00f0ff, -1.1, 0.78, 0);
+      addNeonEdge(kart, new THREE.BoxGeometry(0.08, 0.15, 4.4), 0x00f0ff, 1.1, 0.78, 0);
+      addNeonEdge(kart, new THREE.BoxGeometry(2.3, 0.08, 0.15), 0xa855f7, 0, 0.78, -2.1);
 
+      // Rear spoiler
+      const spoiler = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.12, 0.6), paintMat);
+      spoiler.position.set(0, 1.4, -2.3);
+      const spoilerPost1 = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.6, 0.12), chromeMat);
+      spoilerPost1.position.set(-0.9, 1.1, -2.3);
+      const spoilerPost2 = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.6, 0.12), chromeMat);
+      spoilerPost2.position.set(0.9, 1.1, -2.3);
+      kart.add(spoiler, spoilerPost1, spoilerPost2);
+
+      // Driver
+      const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.6, 0.8, 12), darkMat);
+      torso.position.set(0, 1.1, -0.2);
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.58, 16, 16), paintMat);
+      head.position.set(0, 1.72, -0.15);
+      const visor = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.3, 0.45), new THREE.MeshBasicMaterial({ color: 0x00f0ff, transparent: true, opacity: 0.5 }));
+      visor.position.set(0, 1.75, 0.3);
+      kart.add(torso, head, visor);
+
+      // Exhaust
+      const pipeGeo = new THREE.CylinderGeometry(0.16, 0.2, 1.0, 10);
+      pipeGeo.rotateX(Math.PI / 3);
+      kart.add(new THREE.Mesh(pipeGeo, chromeMat).translateX(-0.5).translateY(0.9).translateZ(-2.3));
+      kart.add(new THREE.Mesh(pipeGeo.clone(), chromeMat).translateX(0.5).translateY(0.9).translateZ(-2.3));
+
+    } else if (modelType === 'cyber-dragon') {
+      // ---- CYBER DRAGON: Aggressive wide-body ----
+      const body = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.7, 4.0), paintMat);
+      body.position.set(0, 0.55, 0);
+      const bodyScoop = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.5, 1.4), darkMat);
+      bodyScoop.position.set(0, 0.95, 0.8);
+      const nose = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.5, 1.4), paintMat);
+      nose.position.set(0, 0.48, 2.2);
+      kart.add(body, bodyScoop, nose);
+
+      // Wide fenders
+      const fenderL = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.5, 3.4), paintMat); fenderL.position.set(-1.5, 0.5, -0.2);
+      const fenderR = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.5, 3.4), paintMat); fenderR.position.set(1.5, 0.5, -0.2);
+      kart.add(fenderL, fenderR);
+
+      // Dragon-style neon accents
+      addNeonEdge(kart, new THREE.BoxGeometry(0.08, 0.2, 3.6), 0xf43f9e, -1.9, 0.72, 0);
+      addNeonEdge(kart, new THREE.BoxGeometry(0.08, 0.2, 3.6), 0xf43f9e, 1.9, 0.72, 0);
+      addNeonEdge(kart, new THREE.BoxGeometry(1.2, 0.08, 0.15), 0xff6b2b, 0, 0.98, 2.9);
+
+      // Big rear wing
+      const wing = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.14, 0.7), paintMat);
+      wing.position.set(0, 1.6, -2.2);
+      const wingEnd1 = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.4, 0.5), paintMat);
+      wingEnd1.position.set(-1.3, 1.5, -2.2);
+      const wingEnd2 = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.4, 0.5), paintMat);
+      wingEnd2.position.set(1.3, 1.5, -2.2);
+      const wPost1 = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.75, 0.14), chromeMat);
+      wPost1.position.set(-0.8, 1.2, -2.0);
+      const wPost2 = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.75, 0.14), chromeMat);
+      wPost2.position.set(0.8, 1.2, -2.0);
+      kart.add(wing, wingEnd1, wingEnd2, wPost1, wPost2);
+
+      // Dragon head ornament
+      addNeonEdge(kart, new THREE.ConeGeometry(0.3, 0.8, 6), 0xff6b2b, 0, 0.9, 3.0);
+
+      // Driver
+      const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.65, 0.9, 12), darkMat);
+      torso.position.set(0, 1.15, -0.2);
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.62, 16, 16), paintMat);
+      head.position.set(0, 1.85, -0.15);
+      const visor = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.32, 0.5), new THREE.MeshBasicMaterial({ color: 0xf43f9e, transparent: true, opacity: 0.5 }));
+      visor.position.set(0, 1.88, 0.35);
+      kart.add(torso, head, visor);
+
+      // Triple exhaust
+      [-0.6, 0, 0.6].forEach(x => {
+        const pGeo = new THREE.CylinderGeometry(0.14, 0.18, 0.8, 8);
+        pGeo.rotateX(Math.PI / 3.5);
+        const pipe = new THREE.Mesh(pGeo, chromeMat);
+        pipe.position.set(x, 0.95, -2.4);
+        kart.add(pipe);
+      });
+
+    } else if (modelType === 'storm-breaker') {
+      // ---- STORM BREAKER: Balanced futuristic ----
+      const body = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.6, 4.0), paintMat);
+      body.position.set(0, 0.55, 0);
+      const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.45, 1.8), darkMat);
+      cabin.position.set(0, 0.92, -0.1);
+      const nose = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.45, 1.3), paintMat);
+      nose.position.set(0, 0.5, 2.1);
+      kart.add(body, cabin, nose);
+
+      // Lightning bolt accents
+      addNeonEdge(kart, new THREE.BoxGeometry(0.1, 0.18, 4.2), 0xfacc15, -1.05, 0.78, 0);
+      addNeonEdge(kart, new THREE.BoxGeometry(0.1, 0.18, 4.2), 0xfacc15, 1.05, 0.78, 0);
+      addNeonEdge(kart, new THREE.BoxGeometry(2.2, 0.1, 0.12), 0xfacc15, 0, 0.3, 0);
+
+      // Side pods
+      const podL = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.45, 2.2), paintMat); podL.position.set(-1.2, 0.48, 0);
+      const podR = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.45, 2.2), paintMat); podR.position.set(1.2, 0.48, 0);
+      kart.add(podL, podR);
+
+      // Wing
+      const spoiler = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.1, 0.5), paintMat);
+      spoiler.position.set(0, 1.3, -2.1);
+      kart.add(spoiler);
+
+      // Driver
+      const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.52, 0.62, 0.85, 12), darkMat);
+      torso.position.set(0, 1.12, -0.2);
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.6, 16, 16), paintMat);
+      head.position.set(0, 1.8, -0.15);
+      const visor = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.3, 0.45), new THREE.MeshBasicMaterial({ color: 0xfacc15, transparent: true, opacity: 0.5 }));
+      visor.position.set(0, 1.83, 0.3);
+      kart.add(torso, head, visor);
+
+      const pipeGeo = new THREE.CylinderGeometry(0.17, 0.21, 1.0, 10);
+      pipeGeo.rotateX(Math.PI / 3);
+      kart.add(new THREE.Mesh(pipeGeo, chromeMat).translateX(-0.5).translateY(0.95).translateZ(-2.2));
+      kart.add(new THREE.Mesh(pipeGeo.clone(), chromeMat).translateX(0.5).translateY(0.95).translateZ(-2.2));
+
+    } else {
+      // ---- DEFAULT / CLASSIC KART (also for inferno-x, glacier-prime, shadow-viper) ----
+      // Keep original kart mesh but add neon accents
+      const body = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.65, 3.8), paintMat);
+      body.position.set(0, 0.55, 0);
+      const nose = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.55, 1.2), whiteMat);
+      nose.position.set(0, 0.52, 2.0);
+      kart.add(body, nose);
+
+      const podL = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.5, 2.0), paintMat); podL.position.set(-1.1, 0.5, 0);
+      const podR = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.5, 2.0), paintMat); podR.position.set(1.1, 0.5, 0);
+      kart.add(podL, podR);
+
+      // Neon edge strips for all classic-based karts
+      let edgeColor = 0x00f0ff;
+      if (modelType === 'inferno-x') edgeColor = 0xff6b2b;
+      else if (modelType === 'glacier-prime') edgeColor = 0x3b82f6;
+      else if (modelType === 'shadow-viper') edgeColor = 0xa855f7;
+
+      addNeonEdge(kart, new THREE.BoxGeometry(0.06, 0.12, 3.9), edgeColor, -1.0, 0.72, 0);
+      addNeonEdge(kart, new THREE.BoxGeometry(0.06, 0.12, 3.9), edgeColor, 1.0, 0.72, 0);
+
+      const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.65, 0.9, 12), whiteMat);
+      torso.position.set(0, 1.15, -0.2);
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.62, 16, 16), paintMat);
+      head.position.set(0, 1.85, -0.15);
+      const visor = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.32, 0.5), new THREE.MeshBasicMaterial({ color: 0x0f172a }));
+      visor.position.set(0, 1.88, 0.35);
+      kart.add(torso, head, visor);
+
+      const pipeGeo = new THREE.CylinderGeometry(0.18, 0.22, 1.1, 10);
+      pipeGeo.rotateX(Math.PI / 3);
+      const pipeL = new THREE.Mesh(pipeGeo, chromeMat); pipeL.position.set(-0.55, 1.0, -2.0);
+      const pipeR = new THREE.Mesh(pipeGeo, chromeMat); pipeR.position.set(0.55, 1.0, -2.0);
+      kart.add(pipeL, pipeR);
+    }
+
+    // ---- SHARED: Shield bubble, wheels (all models) ----
     const shieldBubble = new THREE.Mesh(
       new THREE.SphereGeometry(2.8, 20, 20),
-      new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.38 })
+      new THREE.MeshBasicMaterial({ color: 0x00f0ff, transparent: true, opacity: 0.32 })
     );
     shieldBubble.position.set(0, 1.2, 0);
     shieldBubble.visible = false;
@@ -2395,18 +3419,76 @@ const SoundFX = (function() {
     const rimGeo = new THREE.CylinderGeometry(0.28, 0.28, 0.55, 12);
     rimGeo.rotateZ(Math.PI / 2);
 
+    // Neon rim accent color based on model
+    let rimColor = 0xe8ecf4;
+    if (modelType === 'neon-phantom') rimColor = 0x00f0ff;
+    else if (modelType === 'cyber-dragon') rimColor = 0xf43f9e;
+    else if (modelType === 'storm-breaker') rimColor = 0xfacc15;
+    else if (modelType === 'inferno-x') rimColor = 0xff6b2b;
+    else if (modelType === 'glacier-prime') rimColor = 0x3b82f6;
+    else if (modelType === 'shadow-viper') rimColor = 0xa855f7;
+
+    const rimMat = new THREE.MeshLambertMaterial({ color: rimColor });
+    const neonRimRingGeo = new THREE.TorusGeometry(0.36, 0.045, 8, 20);
+    neonRimRingGeo.rotateY(Math.PI / 2);
+    const neonRimRingMat = new THREE.MeshBasicMaterial({ color: rimColor });
+
+    // F1 Front Aero Wing (shared base with neon edge, makes every model look like an F1 racer)
+    const frontWing = new THREE.Mesh(new THREE.BoxGeometry(2.75, 0.1, 0.65), darkMat);
+    frontWing.position.set(0, 0.24, 2.55);
+    const frontWingEdge = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.06, 0.1), neonRimRingMat);
+    frontWingEdge.position.set(0, 0.25, 2.86);
+    const fwEndL = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.34, 0.72), paintMat);
+    fwEndL.position.set(-1.38, 0.34, 2.55);
+    const fwEndR = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.34, 0.72), paintMat);
+    fwEndR.position.set(1.38, 0.34, 2.55);
+    kart.add(frontWing, frontWingEdge, fwEndL, fwEndR);
+
+    // F1 Halo / Roll Hoop over cockpit
+    const haloRing = new THREE.Mesh(new THREE.TorusGeometry(0.62, 0.055, 8, 16, Math.PI), darkMat);
+    haloRing.rotation.x = Math.PI / 2;
+    haloRing.position.set(0, 1.52, -0.05);
+    const haloPost = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.06, 0.45, 8), neonRimRingMat);
+    haloPost.rotation.x = -0.35;
+    haloPost.position.set(0, 1.32, 0.56);
+    kart.add(haloRing, haloPost);
+
     [[-1.35, 0.52, 1.35], [1.35, 0.52, 1.35], [-1.42, 0.58, -1.3], [1.42, 0.58, -1.3]].forEach((pos, idx) => {
       const wGrp = new THREE.Group();
       const tire = new THREE.Mesh(tireGeo, tireMat);
-      const rim = new THREE.Mesh(rimGeo, whiteMat);
-      if (idx >= 2) { tire.scale.set(1.15, 1.15, 1.15); rim.scale.set(1.15, 1.15, 1.15); }
-      wGrp.add(tire, rim);
+      const rim = new THREE.Mesh(rimGeo, rimMat);
+      const ring = new THREE.Mesh(neonRimRingGeo, neonRimRingMat);
+      ring.position.x = pos[0] < 0 ? -0.27 : 0.27;
+      if (idx >= 2) {
+        tire.scale.set(1.15, 1.15, 1.15);
+        rim.scale.set(1.15, 1.15, 1.15);
+        ring.scale.set(1.15, 1.15, 1.15);
+        ring.position.x *= 1.12;
+      }
+      wGrp.add(tire, rim, ring);
       wGrp.position.set(...pos);
       kart.add(wGrp);
       wheels.push(wGrp);
     });
 
-    kart.userData = { head, wheels, shieldBubble };
+    // Undercar neon glow
+    const underGlow = new THREE.Mesh(
+      new THREE.PlaneGeometry(2.4, 4.0),
+      new THREE.MeshBasicMaterial({ color: rimColor, transparent: true, opacity: 0.15, side: THREE.DoubleSide })
+    );
+    underGlow.rotation.x = -Math.PI / 2;
+    underGlow.position.set(0, 0.08, 0);
+    kart.add(underGlow);
+
+    // Find head for animation (search all children)
+    let headMesh = null;
+    kart.traverse(child => {
+      if (child.geometry && child.geometry.type === 'SphereGeometry' && child.position.y > 1.5) {
+        headMesh = child;
+      }
+    });
+
+    kart.userData = { head: headMesh, wheels, shieldBubble };
     return kart;
   }
 
@@ -2460,6 +3542,7 @@ const SoundFX = (function() {
   }
 
   function startRace(opts) {
+    stopShowcase();
     initThree();
     scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.5, 1800);
@@ -2491,8 +3574,9 @@ const SoundFX = (function() {
     const sAng = Math.atan2(sTan.x, sTan.z);
 
     opts.players.forEach((p, idx) => {
-      const color = (p.skin && p.skin.color) || ['#ff3b30', '#34c759', '#007aff', '#ffcc00'][idx % 4];
-      const mesh = createKartMesh(color);
+      const color = (p.skin && p.skin.color) || ['#ff3b30', '#00f0ff', '#a855f7', '#22d65e'][idx % 4];
+      const carModelId = (p.skin && p.skin.carModelId) || ['kart-classic', 'neon-phantom', 'cyber-dragon', 'storm-breaker'][idx % 4];
+      const mesh = createKartMesh(color, carModelId);
       const nameTag = createPlayerNameTag(p.name);
       mesh.add(nameTag);
       const lane = (idx - 1.5) * 4.2;
@@ -3133,6 +4217,170 @@ const SoundFX = (function() {
   });
 
   G.on('action:quit-race', () => { G.race.stop(); G.ui.show('menu'); });
+
+  /* ==========================================================================
+     6. LIVE 3D NEON MENU & GARAGE SHOWCASE (renders on #gameCanvas)
+     ========================================================================== */
+  let showcaseActive = false;
+  let showcaseAnimId = null;
+  let showcaseScene = null;
+  let showcaseCam = null;
+  let showcaseCar = null;
+  let showcaseMode = 'menu'; // 'menu' | 'garage'
+
+  function buildShowcaseScene() {
+    showcaseScene = new THREE.Scene();
+    showcaseScene.background = makeSkyTexture('#050818', '#14193c');
+    showcaseScene.fog = new THREE.FogExp2(0x0b1026, 0.012);
+
+    showcaseCam = new THREE.PerspectiveCamera(46, window.innerWidth / window.innerHeight, 0.5, 500);
+    showcaseCam.position.set(4.8, 2.35, 6.4);
+    showcaseCam.lookAt(0, 0.85, 0);
+
+    // Neon Night Lighting
+    showcaseScene.add(new THREE.HemisphereLight(0x38bdf8, 0x1e1b4b, 0.85));
+    const keyLight = new THREE.DirectionalLight(0xe0f2fe, 1.1);
+    keyLight.position.set(10, 18, 12);
+    showcaseScene.add(keyLight);
+
+    const cyanRim = new THREE.PointLight(0x00f0ff, 2.2, 28);
+    cyanRim.position.set(-5, 3.5, 4);
+    showcaseScene.add(cyanRim);
+
+    const magentaRim = new THREE.PointLight(0xf43f9e, 2.0, 28);
+    magentaRim.position.set(5, 3.0, -4);
+    showcaseScene.add(magentaRim);
+
+    // Wet Neon Pit Asphalt Floor
+    const floor = new THREE.Mesh(
+      new THREE.PlaneGeometry(320, 320),
+      new THREE.MeshLambertMaterial({ color: 0x0b1124 })
+    );
+    floor.rotation.x = -Math.PI / 2;
+    showcaseScene.add(floor);
+
+    // Glowing Grid Lines
+    const grid = new THREE.GridHelper(160, 48, 0x00f0ff, 0x1e2952);
+    grid.position.y = 0.02;
+    grid.material.opacity = 0.35;
+    grid.material.transparent = true;
+    showcaseScene.add(grid);
+
+    // Neon Pit Pad under the F1 Car
+    const padBorder = new THREE.Mesh(
+      new THREE.RingGeometry(2.9, 3.08, 48),
+      new THREE.MeshBasicMaterial({ color: 0x00f0ff, side: THREE.DoubleSide })
+    );
+    padBorder.rotation.x = -Math.PI / 2;
+    padBorder.position.y = 0.03;
+    showcaseScene.add(padBorder);
+
+    const padInner = new THREE.Mesh(
+      new THREE.RingGeometry(2.1, 2.18, 48),
+      new THREE.MeshBasicMaterial({ color: 0xf43f9e, side: THREE.DoubleSide })
+    );
+    padInner.rotation.x = -Math.PI / 2;
+    padInner.position.y = 0.03;
+    showcaseScene.add(padInner);
+
+    // Giant Glowing Neon Arches in background (matching reference image!)
+    const arch1 = new THREE.Mesh(
+      new THREE.TorusGeometry(13, 0.25, 12, 48, Math.PI),
+      new THREE.MeshBasicMaterial({ color: 0x00f0ff })
+    );
+    arch1.position.set(-10, 0, -24);
+    arch1.rotation.y = 0.25;
+    showcaseScene.add(arch1);
+
+    const arch2 = new THREE.Mesh(
+      new THREE.TorusGeometry(10.5, 0.22, 12, 48, Math.PI),
+      new THREE.MeshBasicMaterial({ color: 0xf43f9e })
+    );
+    arch2.position.set(-14, 0, -32);
+    arch2.rotation.y = 0.25;
+    showcaseScene.add(arch2);
+
+    // Distant Neon City Skyline & Stadium Lights
+    const bldMat = new THREE.MeshLambertMaterial({ color: 0x0f172a });
+    for (let i = -8; i <= 8; i++) {
+      if (Math.abs(i) < 2) continue;
+      const h = 8 + ((Math.abs(i) * 7) % 18);
+      const bld = new THREE.Mesh(new THREE.BoxGeometry(5, h, 5), bldMat);
+      bld.position.set(i * 9, h / 2, -55 - (Math.abs(i) % 3) * 8);
+      showcaseScene.add(bld);
+      const strip = new THREE.Mesh(
+        new THREE.BoxGeometry(5.1, 0.25, 5.1),
+        new THREE.MeshBasicMaterial({ color: i % 2 === 0 ? 0x00f0ff : 0xa855f7 })
+      );
+      strip.position.set(bld.position.x, h - 0.6, bld.position.z);
+      showcaseScene.add(strip);
+    }
+
+    refreshShowcaseCar();
+  }
+
+  function refreshShowcaseCar() {
+    if (!showcaseScene) return;
+    if (showcaseCar) {
+      showcaseScene.remove(showcaseCar);
+      showcaseCar = null;
+    }
+    const skin = G.garage ? G.garage.getSkin() : { color: '#00f0ff', carModelId: 'kart-classic' };
+    showcaseCar = createKartMesh(skin.color, skin.carModelId);
+    showcaseCar.position.set(0, 0, 0);
+    showcaseScene.add(showcaseCar);
+  }
+
+  function startShowcase(mode) {
+    if (running) return;
+    showcaseMode = mode || 'menu';
+    initThree();
+    if (!showcaseScene) buildShowcaseScene();
+    else refreshShowcaseCar();
+
+    if (showcaseActive) return;
+    showcaseActive = true;
+
+    function showcaseLoop(now) {
+      if (!showcaseActive || running) return;
+      showcaseAnimId = requestAnimationFrame(showcaseLoop);
+      if (showcaseCar) {
+        showcaseCar.rotation.y = now * 0.00045 + 0.55;
+        showcaseCar.position.y = Math.sin(now * 0.0025) * 0.04;
+      }
+      if (showcaseCam) {
+        showcaseCam.aspect = window.innerWidth / window.innerHeight;
+        showcaseCam.updateProjectionMatrix();
+        const targetX = showcaseMode === 'garage' ? -2.0 : 0;
+        showcaseCam.position.x += ((showcaseMode === 'garage' ? 3.2 : 4.6) - showcaseCam.position.x) * 0.08;
+        showcaseCam.lookAt(targetX, 0.85, 0);
+      }
+      renderer.setViewport(0, 0, window.innerWidth, window.innerHeight);
+      renderer.setScissorTest(false);
+      renderer.render(showcaseScene, showcaseCam);
+    }
+    showcaseAnimId = requestAnimationFrame(showcaseLoop);
+  }
+
+  function stopShowcase() {
+    showcaseActive = false;
+    if (showcaseAnimId) {
+      cancelAnimationFrame(showcaseAnimId);
+      showcaseAnimId = null;
+    }
+  }
+
+  G.on('ui:screen', (screenName) => {
+    if (screenName === 'menu' || screenName === 'garage') {
+      startShowcase(screenName);
+    } else if (screenName === 'hud') {
+      stopShowcase();
+    }
+  });
+  G.on('garage:changed', refreshShowcaseCar);
+
+  // Start 3D Neon Showcase immediately on load
+  startShowcase('menu');
 })(window.GameApp);
 
 </script>
@@ -3306,7 +4554,10 @@ const SoundFX = (function() {
     });
 
     peer.on('connection', (conn) => {
-      if (!isHost) return;
+      if (!isHost) {
+        try { conn.close(); } catch (e) {}
+        return;
+      }
       conn.on('data', (d) => {
         if (!d || typeof d !== 'object') return;
         if (d.type === 'PING') {
@@ -3367,11 +4618,13 @@ const SoundFX = (function() {
   }
 
   function broadcast(msg) {
-    clientConns = clientConns.filter(c => c && !c.peerConnection || c.peerConnection.connectionState !== 'closed');
+    clientConns = clientConns.filter(c => c && (!c.peerConnection || c.peerConnection.connectionState !== 'closed'));
     clientConns.forEach(c => safeSend(c, msg));
   }
 
   function broadcastAll(msg, excludePeerId = null) {
+    clientConns = clientConns.filter(c => c && (!c.peerConnection || c.peerConnection.connectionState !== 'closed'));
+    specConns = specConns.filter(c => c && (!c.peerConnection || c.peerConnection.connectionState !== 'closed'));
     clientConns.forEach(c => { if (c.peer !== excludePeerId) safeSend(c, msg); });
     specConns.forEach(c => { if (c.peer !== excludePeerId) safeSend(c, msg); });
   }
@@ -3651,7 +4904,7 @@ const SoundFX = (function() {
     else safeSend(connHost, msg);
   });
 
-  G.on('action:back-menu', () => {
+  function cleanupMultiplayer() {
     clearNetTimers();
     if (connHost) {
       try { connHost.close(); } catch (e) {}
@@ -3664,7 +4917,13 @@ const SoundFX = (function() {
       specConns = [];
       isHost = false;
     }
-  });
+    isSpectator = false;
+    myReady = false;
+    roomState.started = false;
+  }
+
+  G.on('action:back-menu', cleanupMultiplayer);
+  G.on('action:quit-race', cleanupMultiplayer);
 
   G.on('action:net-copy', () => {
     if (navigator.clipboard && navigator.clipboard.writeText) {
